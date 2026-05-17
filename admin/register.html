@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>학생 등록 - ThinkUp</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="../firebase-config.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: #f1f5f9; }
+    .topbar {
+      background: #1e3a5f; color: white;
+      padding: 1rem 2rem;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .topbar a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; }
+    .topbar h1 { font-size: 1.1rem; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+
+    /* 드래그 영역 */
+    .drop-zone {
+      background: white; border: 2.5px dashed #93c5fd;
+      border-radius: 16px; padding: 3rem 2rem;
+      text-align: center; cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      margin-bottom: 1.5rem;
+    }
+    .drop-zone.dragover { background: #eff6ff; border-color: #2563eb; }
+    .drop-zone .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .drop-zone h3 { color: #1e40af; font-size: 1.1rem; margin-bottom: 0.4rem; }
+    .drop-zone p { color: #64748b; font-size: 0.9rem; }
+    .drop-zone input { display: none; }
+
+    /* 파싱 결과 */
+    #resultSection { display: none; }
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    .section-header h2 { font-size: 1.1rem; color: #1e293b; }
+    .btn {
+      padding: 0.6rem 1.4rem; border-radius: 9px;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      border: none; transition: background 0.2s;
+    }
+    .btn-save { background: #2563eb; color: white; }
+    .btn-save:hover { background: #1d4ed8; }
+    .btn-save:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    .day-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+    .tab {
+      padding: 0.5rem 1.2rem; border-radius: 20px;
+      border: 1.5px solid #e2e8f0; background: white;
+      cursor: pointer; font-size: 0.9rem; color: #475569;
+      transition: all 0.15s;
+    }
+    .tab.active { background: #2563eb; color: white; border-color: #2563eb; }
+
+    .day-content { display: none; }
+    .day-content.active { display: block; }
+
+    .teacher-block {
+      background: white; border-radius: 12px;
+      padding: 1.2rem; margin-bottom: 1rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .teacher-name {
+      font-weight: 700; color: #1e3a5f; font-size: 1rem;
+      margin-bottom: 0.8rem; padding-bottom: 0.6rem;
+      border-bottom: 1.5px solid #f1f5f9;
+    }
+    .student-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .student-chip {
+      background: #eff6ff; color: #1e40af;
+      padding: 0.35rem 0.8rem; border-radius: 20px;
+      font-size: 0.85rem;
+    }
+    .student-chip .code { color: #93c5fd; font-size: 0.75rem; margin-left: 0.3rem; }
+
+    .empty-day { color: #94a3b8; text-align: center; padding: 2rem; font-size: 0.9rem; }
+
+    /* 상태 메시지 */
+    .status {
+      padding: 1rem 1.2rem; border-radius: 10px;
+      margin-bottom: 1rem; font-size: 0.9rem;
+      display: none;
+    }
+    .status.loading { background: #fef3c7; color: #92400e; display: block; }
+    .status.success { background: #d1fae5; color: #065f46; display: block; }
+    .status.error { background: #fee2e2; color: #991b1b; display: block; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="./index.html">← 대시보드</a>
+  <h1>학생 등록 (시간표 PDF 업로드)</h1>
+</div>
+
+<div class="container">
+  <div id="status" class="status"></div>
+
+  <!-- 드래그 앤 드롭 영역 -->
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">📄</div>
+    <h3>시간표 PDF를 여기에 드래그 하세요</h3>
+    <p>또는 클릭해서 파일 선택</p>
+    <input type="file" id="fileInput" accept=".pdf">
+  </div>
+
+  <!-- 파싱 결과 -->
+  <div id="resultSection">
+    <div class="section-header">
+      <h2>파싱 결과 확인</h2>
+      <button class="btn btn-save" id="saveBtn" onclick="saveToFirebase()">Firebase에 저장</button>
+    </div>
+    <div class="day-tabs" id="dayTabs"></div>
+    <div id="dayContents"></div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const DAYS_KR = ['월', '화', '수', '목', '금'];
+const DAY_CODES = { '월': 'mon', '화': 'tue', '수': 'wed', '목': 'thu', '금': 'fri' };
+let parsedSchedule = null;
+
+// 드래그 앤 드롭 처리
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type === 'application/pdf') handleFile(file);
+  else showStatus('PDF 파일만 업로드 가능합니다.', 'error');
+});
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+async function handleFile(file) {
+  showStatus('PDF 분석 중...', 'loading');
+  try {
+    parsedSchedule = await parsePDF(file);
+    renderResult(parsedSchedule);
+    showStatus('PDF 분석 완료! 내용을 확인 후 저장하세요.', 'success');
+    document.getElementById('resultSection').style.display = 'block';
+  } catch (err) {
+    showStatus('PDF 분석 실패: ' + err.message, 'error');
+    console.error(err);
+  }
+}
+
+// PDF 파싱 핵심 함수
+async function parsePDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+  let items = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    const vp = page.getViewport({ scale: 1 });
+    content.items.forEach(item => {
+      const str = item.str.trim();
+      if (str) {
+        items.push({
+          str,
+          x: Math.round(item.transform[4]),
+          y: Math.round(vp.height - item.transform[5])
+        });
+      }
+    });
+  }
+
+  // y 기준 정렬 후 행 그룹화 (±6px 허용)
+  items.sort((a, b) => a.y !== b.y ? a.y - b.y : a.x - b.x);
+  const rows = groupRows(items, 6);
+
+  // 요일 행 탐색
+  let dayRowIdx = -1;
+  let dayPositions = []; // [{day, x}]
+
+  for (let i = 0; i < rows.length; i++) {
+    const found = rows[i].filter(it => DAYS_KR.includes(it.str));
+    if (found.length >= 1) {
+      dayRowIdx = i;
+      dayPositions = found.map(it => ({ day: it.str, x: it.x }));
+      break;
+    }
+  }
+
+  if (dayRowIdx === -1) throw new Error('요일 정보를 찾을 수 없습니다. PDF 형식을 확인해주세요.');
+
+  // 요일 x범위 계산
+  dayPositions.sort((a, b) => a.x - b.x);
+  const dayRanges = dayPositions.map((dp, i) => ({
+    day: dp.day,
+    minX: dp.x - 30,
+    maxX: i < dayPositions.length - 1 ? dayPositions[i + 1].x - 30 : 99999
+  }));
+
+  // 선생님 행 (요일 행 바로 아래)
+  const teacherRow = rows[dayRowIdx + 1] || [];
+  const teachers = {}; // dayCode -> [{name, x}]
+  dayRanges.forEach(dr => { teachers[DAY_CODES[dr.day]] = []; });
+
+  teacherRow.forEach(item => {
+    if (DAYS_KR.includes(item.str)) return; // 혹시 요일이 섞인 경우 스킵
+    const range = dayRanges.find(dr => item.x >= dr.minX && item.x < dr.maxX);
+    if (range) {
+      teachers[DAY_CODES[range.day]].push({ name: item.str, x: item.x, students: [] });
+    }
+  });
+
+  // 학생 엔트리 파싱 (이름(4자리코드) 패턴)
+  const STUDENT_RE = /^(.+?)\s*\((\d{4})\)$/;
+
+  for (let i = dayRowIdx + 2; i < rows.length; i++) {
+    for (const item of rows[i]) {
+      const m = item.str.match(STUDENT_RE);
+      if (!m) continue;
+      const [, name, code] = m;
+
+      const range = dayRanges.find(dr => item.x >= dr.minX && item.x < dr.maxX);
+      if (!range) continue;
+
+      const dayCode = DAY_CODES[range.day];
+      const teacherList = teachers[dayCode];
+      if (!teacherList || teacherList.length === 0) continue;
+
+      // x좌표가 가장 가까운 선생님에 배정
+      let nearest = teacherList[0];
+      let minDist = Math.abs(item.x - nearest.x);
+      for (const t of teacherList) {
+        const d = Math.abs(item.x - t.x);
+        if (d < minDist) { minDist = d; nearest = t; }
+      }
+      nearest.students.push({ name: name.trim(), code });
+    }
+  }
+
+  // 최종 구조로 변환 (x좌표 제거)
+  const schedule = {};
+  for (const [dayCode, teacherList] of Object.entries(teachers)) {
+    const dayKr = Object.keys(DAY_CODES).find(k => DAY_CODES[k] === dayCode);
+    schedule[dayCode] = {
+      day: dayKr,
+      teachers: teacherList.map(t => ({ name: t.name, students: t.students }))
+    };
+  }
+
+  return schedule;
+}
+
+function groupRows(items, tolerance) {
+  const rows = [];
+  let current = [];
+  let lastY = null;
+  for (const item of items) {
+    if (lastY === null || Math.abs(item.y - lastY) <= tolerance) {
+      current.push(item);
+      lastY = lastY === null ? item.y : Math.round((lastY + item.y) / 2);
+    } else {
+      if (current.length) rows.push([...current]);
+      current = [item];
+      lastY = item.y;
+    }
+  }
+  if (current.length) rows.push(current);
+  return rows;
+}
+
+// 결과 렌더링
+function renderResult(schedule) {
+  const tabs = document.getElementById('dayTabs');
+  const contents = document.getElementById('dayContents');
+  tabs.innerHTML = '';
+  contents.innerHTML = '';
+
+  const dayOrder = ['mon', 'tue', 'wed', 'thu', 'fri'];
+  const dayKr = { mon: '월요일', tue: '화요일', wed: '수요일', thu: '목요일', fri: '금요일' };
+  let first = true;
+
+  dayOrder.forEach(dc => {
+    const data = schedule[dc];
+    if (!data) return;
+
+    const hasStudents = data.teachers.some(t => t.students.length > 0);
+
+    // 탭 버튼
+    const tab = document.createElement('button');
+    tab.className = 'tab' + (first ? ' active' : '');
+    tab.textContent = dayKr[dc];
+    tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.day-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('content-' + dc).classList.add('active');
+    };
+    tabs.appendChild(tab);
+
+    // 콘텐츠
+    const div = document.createElement('div');
+    div.className = 'day-content' + (first ? ' active' : '');
+    div.id = 'content-' + dc;
+
+    if (!hasStudents) {
+      div.innerHTML = '<div class="empty-day">이 요일에 등록된 학생이 없습니다.</div>';
+    } else {
+      data.teachers.forEach(t => {
+        if (t.students.length === 0) return;
+        const block = document.createElement('div');
+        block.className = 'teacher-block';
+        block.innerHTML = `
+          <div class="teacher-name">👨‍🏫 ${t.name} 선생님</div>
+          <div class="student-list">
+            ${t.students.map(s =>
+              `<span class="student-chip">${s.name}<span class="code">(${s.code})</span></span>`
+            ).join('')}
+          </div>
+        `;
+        div.appendChild(block);
+      });
+    }
+
+    contents.appendChild(div);
+    first = false;
+  });
+}
+
+// Firebase 저장
+async function saveToFirebase() {
+  if (!parsedSchedule) return;
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+  showStatus('Firebase에 저장 중...', 'loading');
+
+  try {
+    const batch = db.batch();
+
+    // 스케줄 저장
+    for (const [dayCode, data] of Object.entries(parsedSchedule)) {
+      const ref = db.collection('schedules').doc(dayCode);
+      batch.set(ref, data);
+    }
+
+    // 학생 개별 등록 (code → student 매핑)
+    const studentsSeen = new Set();
+    for (const data of Object.values(parsedSchedule)) {
+      for (const teacher of data.teachers) {
+        for (const student of teacher.students) {
+          if (!studentsSeen.has(student.code)) {
+            studentsSeen.add(student.code);
+            const ref = db.collection('students').doc(student.code);
+            batch.set(ref, { name: student.name, code: student.code });
+          }
+        }
+      }
+    }
+
+    await batch.commit();
+    showStatus(`저장 완료! 선생님 ${countTeachers()}명, 학생 ${countStudents()}명이 등록되었습니다.`, 'success');
+    btn.textContent = '저장 완료 ✓';
+  } catch (err) {
+    showStatus('저장 실패: ' + err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Firebase에 저장';
+  }
+}
+
+function countTeachers() {
+  const names = new Set();
+  for (const data of Object.values(parsedSchedule)) {
+    data.teachers.forEach(t => names.add(t.name));
+  }
+  return names.size;
+}
+
+function countStudents() {
+  const codes = new Set();
+  for (const data of Object.values(parsedSchedule)) {
+    for (const t of data.teachers) {
+      t.students.forEach(s => codes.add(s.code));
+    }
+  }
+  return codes.size;
+}
+
+function showStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.className = 'status ' + type;
+  el.textContent = msg;
+}
+
+// 관리자 체크
+if (!sessionStorage.getItem('thinkup_admin')) {
+  window.location.href = './index.html';
+}
+</script>
+</body>
+</html>

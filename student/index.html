@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ThinkUp 출석</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#059669">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="../firebase-config.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+      height: 100%; overflow: hidden;
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+    }
+
+    /* 메인 화면 */
+    #mainScreen {
+      height: 100vh;
+      background: linear-gradient(160deg, #065f46 0%, #059669 50%, #34d399 100%);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 2rem 1.5rem;
+    }
+
+    .logo { color: rgba(255,255,255,0.9); font-size: 1.6rem; font-weight: 800; margin-bottom: 0.3rem; }
+    .welcome {
+      color: white; font-size: 1.4rem; font-weight: 600;
+      margin-bottom: 0.5rem; text-align: center;
+    }
+    .welcome-sub { color: rgba(255,255,255,0.75); font-size: 1rem; margin-bottom: 2.5rem; text-align: center; }
+
+    /* 코드 입력 디스플레이 */
+    .code-display {
+      background: rgba(255,255,255,0.2);
+      border-radius: 16px; padding: 1rem 2rem;
+      margin-bottom: 1.5rem; min-width: 200px;
+      display: flex; align-items: center; justify-content: center; gap: 0.8rem;
+    }
+    .code-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 2.5px solid rgba(255,255,255,0.6);
+      background: transparent; transition: background 0.15s;
+    }
+    .code-dot.filled { background: white; border-color: white; }
+
+    /* 키패드 */
+    .keypad {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem; width: 100%; max-width: 320px;
+    }
+    .key {
+      background: rgba(255,255,255,0.2);
+      border: none; border-radius: 14px;
+      color: white; font-size: 1.5rem; font-weight: 600;
+      padding: 1.1rem; cursor: pointer;
+      transition: background 0.1s, transform 0.1s;
+      backdrop-filter: blur(4px);
+      aspect-ratio: 1;
+    }
+    .key:active { background: rgba(255,255,255,0.4); transform: scale(0.95); }
+    .key.del { font-size: 1.2rem; }
+    .key.empty { background: transparent; cursor: default; }
+    .key.empty:active { transform: none; }
+
+    /* 메시지 화면 */
+    #msgScreen {
+      display: none; height: 100vh;
+      align-items: center; justify-content: center;
+      flex-direction: column; padding: 2rem;
+      text-align: center;
+    }
+    #msgScreen.checkin {
+      background: linear-gradient(160deg, #065f46 0%, #059669 100%);
+    }
+    #msgScreen.checkout {
+      background: linear-gradient(160deg, #1e3a5f 0%, #2563eb 100%);
+    }
+    #msgScreen.error {
+      background: linear-gradient(160deg, #7f1d1d 0%, #dc2626 100%);
+    }
+
+    .msg-icon { font-size: 5rem; margin-bottom: 1.5rem; }
+    .msg-text {
+      color: white; font-size: 1.35rem; font-weight: 700;
+      line-height: 1.7; max-width: 380px;
+    }
+    .msg-sub {
+      color: rgba(255,255,255,0.8); font-size: 1rem;
+      margin-top: 1rem; font-weight: 400;
+    }
+    .msg-timer {
+      margin-top: 2rem; color: rgba(255,255,255,0.6);
+      font-size: 0.9rem;
+    }
+    .timer-bar {
+      width: 200px; height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px; margin: 0.6rem auto 0; overflow: hidden;
+    }
+    .timer-fill {
+      height: 100%; background: white; border-radius: 2px;
+      width: 100%; transition: width linear;
+    }
+
+    @media (min-width: 500px) {
+      .welcome { font-size: 1.8rem; }
+      .key { font-size: 1.8rem; padding: 1.3rem; }
+      .keypad { max-width: 360px; }
+      .msg-text { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 메인 화면 (코드 입력) -->
+<div id="mainScreen">
+  <div class="logo">ThinkUp</div>
+  <div class="welcome">환영합니다!</div>
+  <div class="welcome-sub">코드를 눌러주세요</div>
+
+  <div class="code-display" id="codeDisplay">
+    <div class="code-dot" id="d0"></div>
+    <div class="code-dot" id="d1"></div>
+    <div class="code-dot" id="d2"></div>
+    <div class="code-dot" id="d3"></div>
+  </div>
+
+  <div class="keypad">
+    <button class="key" onclick="press('1')">1</button>
+    <button class="key" onclick="press('2')">2</button>
+    <button class="key" onclick="press('3')">3</button>
+    <button class="key" onclick="press('4')">4</button>
+    <button class="key" onclick="press('5')">5</button>
+    <button class="key" onclick="press('6')">6</button>
+    <button class="key" onclick="press('7')">7</button>
+    <button class="key" onclick="press('8')">8</button>
+    <button class="key" onclick="press('9')">9</button>
+    <button class="key empty"></button>
+    <button class="key" onclick="press('0')">0</button>
+    <button class="key del" onclick="del()">⌫</button>
+  </div>
+</div>
+
+<!-- 메시지 화면 -->
+<div id="msgScreen">
+  <div class="msg-icon" id="msgIcon"></div>
+  <div class="msg-text" id="msgText"></div>
+  <div class="msg-sub" id="msgSub"></div>
+  <div class="msg-timer">
+    <div id="timerTxt">5초 후 자동으로 돌아갑니다</div>
+    <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
+  </div>
+</div>
+
+<script>
+let code = '';
+let processing = false;
+let resetTimer = null;
+
+function toDateStr(d) {
+  return d.toISOString().split('T')[0];
+}
+function formatTime(d) {
+  return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+function formatDuration(min) {
+  const h = Math.floor(min / 60), m = min % 60;
+  if (h === 0) return `${m}분`;
+  if (m === 0) return `${h}시간`;
+  return `${h}시간 ${m}분`;
+}
+
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('d' + i).classList.toggle('filled', i < code.length);
+  }
+}
+
+function press(n) {
+  if (processing || code.length >= 4) return;
+  code += n;
+  updateDots();
+  if (code.length === 4) {
+    setTimeout(() => submitCode(), 200);
+  }
+}
+
+function del() {
+  if (processing || code.length === 0) return;
+  code = code.slice(0, -1);
+  updateDots();
+}
+
+async function submitCode() {
+  processing = true;
+  const enteredCode = code;
+
+  try {
+    // 학생 조회
+    const studentDoc = await db.collection('students').doc(enteredCode).get();
+    if (!studentDoc.exists) {
+      showMessage('❓', '등록되지 않은 코드입니다.', '', 'error');
+      return;
+    }
+
+    const student = studentDoc.data();
+    const today = toDateStr(new Date());
+    const now = new Date();
+    const timeStr = formatTime(now);
+    const attendRef = db.collection('attendance').doc(today).collection('students').doc(enteredCode);
+    const attendDoc = await attendRef.get();
+
+    if (!attendDoc.exists || !attendDoc.data().checkIn) {
+      // 입실 처리
+      await attendRef.set({
+        studentName: student.name,
+        code: enteredCode,
+        checkIn: timeStr,
+        checkInTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        checkOut: null,
+        durationMinutes: null,
+        date: today
+      });
+      showMessage(
+        '✅',
+        `${student.name} 학생은\n${timeStr}에 입실하였습니다`,
+        '',
+        'checkin'
+      );
+    } else if (!attendDoc.data().checkOut) {
+      // 퇴실 처리
+      const data = attendDoc.data();
+      const checkInParts = data.checkIn.split(':');
+      const checkInDate = new Date();
+      checkInDate.setHours(parseInt(checkInParts[0]), parseInt(checkInParts[1]), 0, 0);
+      const durationMinutes = Math.round((now - checkInDate) / 60000);
+      const durStr = formatDuration(durationMinutes);
+
+      await attendRef.update({
+        checkOut: timeStr,
+        checkOutTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        durationMinutes
+      });
+      showMessage(
+        '👋',
+        `${student.name} 학생은 퇴실합니다.`,
+        `오늘 총 수업시간은 ${durStr}입니다.\n수고하셨습니다!`,
+        'checkout'
+      );
+    } else {
+      // 이미 퇴실한 학생
+      showMessage('ℹ️', `${student.name} 학생은\n이미 퇴실하였습니다.`, '', 'error');
+    }
+  } catch (err) {
+    showMessage('⚠️', '오류가 발생했습니다.', err.message, 'error');
+  }
+}
+
+function showMessage(icon, text, sub, type) {
+  const msg = document.getElementById('msgScreen');
+  document.getElementById('mainScreen').style.display = 'none';
+  msg.style.display = 'flex';
+  msg.className = type;
+  document.getElementById('msgIcon').textContent = icon;
+  document.getElementById('msgText').textContent = text;
+  document.getElementById('msgSub').textContent = sub;
+
+  // 타이머 바 애니메이션
+  const fill = document.getElementById('timerFill');
+  fill.style.transition = 'none';
+  fill.style.width = '100%';
+  setTimeout(() => {
+    fill.style.transition = 'width 5s linear';
+    fill.style.width = '0%';
+  }, 50);
+
+  if (resetTimer) clearTimeout(resetTimer);
+  resetTimer = setTimeout(resetScreen, 5000);
+}
+
+function resetScreen() {
+  code = '';
+  processing = false;
+  updateDots();
+  document.getElementById('msgScreen').style.display = 'none';
+  document.getElementById('mainScreen').style.display = 'flex';
+}
+
+// Service Worker 등록
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(console.warn);
+}
+</script>
+</body>
+</html>

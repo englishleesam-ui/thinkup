@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>수업 데이터 - ThinkUp</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="../firebase-config.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: #f1f5f9; }
+    .topbar {
+      background: #1e3a5f; color: white;
+      padding: 1rem 2rem;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .topbar a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; }
+    .topbar h1 { font-size: 1.1rem; }
+    .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
+
+    /* 날짜 선택 */
+    .date-bar {
+      background: white; border-radius: 14px;
+      padding: 1.2rem 1.5rem; margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .date-bar label { font-size: 0.9rem; color: #475569; font-weight: 600; }
+    .date-bar input[type="date"] {
+      padding: 0.5rem 0.8rem; border: 1.5px solid #e2e8f0;
+      border-radius: 8px; font-size: 0.9rem; outline: none;
+    }
+    .date-bar input[type="date"]:focus { border-color: #2563eb; }
+    .week-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .week-btn {
+      padding: 0.4rem 0.9rem; border-radius: 20px;
+      border: 1.5px solid #e2e8f0; background: white;
+      cursor: pointer; font-size: 0.82rem; color: #475569;
+      transition: all 0.15s;
+    }
+    .week-btn.active { background: #2563eb; color: white; border-color: #2563eb; }
+    .retention-note { color: #94a3b8; font-size: 0.8rem; margin-left: auto; }
+
+    /* 통계 카드 */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card {
+      background: white; border-radius: 12px; padding: 1.2rem;
+      text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .stat-val { font-size: 2rem; font-weight: 700; color: #2563eb; }
+    .stat-label { font-size: 0.82rem; color: #94a3b8; margin-top: 0.2rem; }
+
+    /* 테이블 */
+    .table-card {
+      background: white; border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+    .table-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #f1f5f9;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .table-header h3 { font-size: 1rem; color: #1e293b; }
+    .filter-input {
+      padding: 0.4rem 0.8rem; border: 1.5px solid #e2e8f0;
+      border-radius: 8px; font-size: 0.85rem; outline: none; width: 180px;
+    }
+    .filter-input:focus { border-color: #2563eb; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: #f8fafc; padding: 0.8rem 1rem;
+      text-align: left; font-size: 0.82rem; color: #64748b;
+      font-weight: 600; border-bottom: 1px solid #f1f5f9;
+    }
+    tbody td {
+      padding: 0.8rem 1rem; font-size: 0.9rem; color: #1e293b;
+      border-bottom: 1px solid #f8fafc;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; }
+
+    .badge {
+      display: inline-block; padding: 0.2rem 0.6rem;
+      border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+    }
+    .badge-in { background: #d1fae5; color: #065f46; }
+    .badge-out { background: #eff6ff; color: #1e40af; }
+    .badge-absent { background: #f1f5f9; color: #94a3b8; }
+
+    .empty-msg { text-align: center; padding: 3rem; color: #94a3b8; }
+    .loading { text-align: center; padding: 2rem; color: #64748b; }
+
+    @media (max-width: 600px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="./index.html">← 대시보드</a>
+  <h1>수업 데이터</h1>
+</div>
+
+<div class="container">
+
+  <!-- 날짜 선택 -->
+  <div class="date-bar">
+    <label>날짜</label>
+    <input type="date" id="dateInput" onchange="loadData()">
+    <div class="week-btns" id="weekBtns"></div>
+    <span class="retention-note">최근 2주 데이터 보관</span>
+  </div>
+
+  <!-- 통계 -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-val" id="statTotal">-</div>
+      <div class="stat-label">전체 학생</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statIn" style="color:#059669">-</div>
+      <div class="stat-label">입실</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statOut" style="color:#2563eb">-</div>
+      <div class="stat-label">퇴실</div>
+    </div>
+  </div>
+
+  <!-- 테이블 -->
+  <div class="table-card">
+    <div class="table-header">
+      <h3>출결 현황</h3>
+      <input class="filter-input" placeholder="이름 검색..." oninput="filterTable(this.value)">
+    </div>
+    <div id="tableContainer">
+      <div class="loading">날짜를 선택하세요.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+if (!sessionStorage.getItem('thinkup_admin')) window.location.href = './index.html';
+
+const DAYS = ['일', '월', '화', '수', '목', '금', '토'];
+let allRows = [];
+let currentData = [];
+
+function toDateStr(d) {
+  return d.toISOString().split('T')[0];
+}
+
+// 오늘 기준 2주 탭 생성
+function buildWeekBtns() {
+  const container = document.getElementById('weekBtns');
+  const today = new Date();
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const str = toDateStr(d);
+    const btn = document.createElement('button');
+    btn.className = 'week-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = i === 0 ? '오늘' : `${d.getMonth()+1}/${d.getDate()}(${DAYS[d.getDay()]})`;
+    btn.dataset.date = str;
+    btn.onclick = () => {
+      document.querySelectorAll('.week-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('dateInput').value = str;
+      loadData(str);
+    };
+    container.appendChild(btn);
+  }
+  // 기본값 오늘
+  document.getElementById('dateInput').value = toDateStr(today);
+}
+
+async function loadData(dateStr) {
+  dateStr = dateStr || document.getElementById('dateInput').value;
+  if (!dateStr) return;
+
+  document.getElementById('tableContainer').innerHTML = '<div class="loading">불러오는 중...</div>';
+
+  try {
+    // 해당 날짜 요일 기반으로 스케줄 조회
+    const d = new Date(dateStr + 'T00:00:00');
+    const dayCodes = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+    const dayCode = dayCodes[d.getDay()];
+
+    // 스케줄에서 당일 수업 학생 목록
+    const scheduleDoc = await db.collection('schedules').doc(dayCode).get();
+    const scheduledStudents = {}; // code -> {name, teacherName}
+
+    if (scheduleDoc.exists) {
+      const data = scheduleDoc.data();
+      (data.teachers || []).forEach(t => {
+        (t.students || []).forEach(s => {
+          scheduledStudents[s.code] = { name: s.name, teacherName: t.name };
+        });
+      });
+    }
+
+    // 출결 데이터 조회
+    const attendSnap = await db.collection('attendance').doc(dateStr).collection('students').get();
+    const attended = {};
+    attendSnap.forEach(doc => {
+      attended[doc.id] = doc.data();
+    });
+
+    // 통합
+    currentData = [];
+    const allCodes = new Set([...Object.keys(scheduledStudents), ...Object.keys(attended)]);
+    allCodes.forEach(code => {
+      const scheduled = scheduledStudents[code];
+      const att = attended[code];
+      currentData.push({
+        code,
+        name: (scheduled?.name || att?.studentName || '알 수 없음'),
+        teacher: (scheduled?.teacherName || '-'),
+        checkIn: att?.checkIn || null,
+        checkOut: att?.checkOut || null,
+        duration: att?.durationMinutes || null
+      });
+    });
+
+    currentData.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    renderTable(currentData);
+
+    // 통계
+    const totalIn = currentData.filter(r => r.checkIn).length;
+    const totalOut = currentData.filter(r => r.checkOut).length;
+    document.getElementById('statTotal').textContent = currentData.length;
+    document.getElementById('statIn').textContent = totalIn;
+    document.getElementById('statOut').textContent = totalOut;
+
+  } catch (err) {
+    document.getElementById('tableContainer').innerHTML =
+      `<div class="loading" style="color:#ef4444">오류: ${err.message}</div>`;
+  }
+}
+
+function renderTable(data) {
+  if (data.length === 0) {
+    document.getElementById('tableContainer').innerHTML =
+      '<div class="empty-msg">해당 날짜의 데이터가 없습니다.</div>';
+    return;
+  }
+
+  let html = `
+    <table>
+      <thead>
+        <tr>
+          <th>이름</th>
+          <th>코드</th>
+          <th>담당 선생님</th>
+          <th>입실</th>
+          <th>퇴실</th>
+          <th>수업 시간</th>
+          <th>상태</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  allRows = [];
+  data.forEach(r => {
+    let status = '결석';
+    let badgeClass = 'badge-absent';
+    if (r.checkOut) { status = '퇴실'; badgeClass = 'badge-out'; }
+    else if (r.checkIn) { status = '입실중'; badgeClass = 'badge-in'; }
+
+    const dur = r.duration ? formatDuration(r.duration) : '-';
+    const row = `
+      <tr data-name="${r.name}">
+        <td><strong>${r.name}</strong></td>
+        <td style="color:#94a3b8">${r.code}</td>
+        <td>${r.teacher}</td>
+        <td>${r.checkIn || '-'}</td>
+        <td>${r.checkOut || '-'}</td>
+        <td>${dur}</td>
+        <td><span class="badge ${badgeClass}">${status}</span></td>
+      </tr>
+    `;
+    allRows.push(row);
+    html += row;
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('tableContainer').innerHTML = html;
+}
+
+function filterTable(query) {
+  const q = query.trim().toLowerCase();
+  const tbody = document.querySelector('tbody');
+  if (!tbody) return;
+  document.querySelectorAll('tbody tr').forEach(tr => {
+    const name = tr.dataset.name || '';
+    tr.style.display = name.includes(q) ? '' : 'none';
+  });
+}
+
+function formatDuration(min) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h === 0) return `${m}분`;
+  if (m === 0) return `${h}시간`;
+  return `${h}시간 ${m}분`;
+}
+
+buildWeekBtns();
+loadData();
+</script>
+</body>
+</html>

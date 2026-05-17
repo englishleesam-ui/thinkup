@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>ThinkUp 선생님</title>
+  <link rel="manifest" href="./manifest.json">
+  <meta name="theme-color" content="#1e3a5f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="../firebase-config.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: #f1f5f9; min-height: 100vh; }
+
+    /* 헤더 */
+    .header {
+      background: #1e3a5f; color: white;
+      padding: 1rem 1.2rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header-left h1 { font-size: 1.1rem; font-weight: 700; }
+    .header-left .date-info { font-size: 0.82rem; opacity: 0.7; margin-top: 0.15rem; }
+    .back-btn {
+      background: rgba(255,255,255,0.15); color: white;
+      border: none; border-radius: 8px;
+      padding: 0.4rem 0.9rem; cursor: pointer; font-size: 0.85rem;
+    }
+
+    /* 선생님 선택 화면 */
+    #selectPage { padding: 1.5rem 1rem; }
+    .select-title { font-size: 1rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem; }
+    .teacher-list { display: flex; flex-direction: column; gap: 0.7rem; }
+    .teacher-btn {
+      background: white; border: none; border-radius: 14px;
+      padding: 1.2rem 1.5rem;
+      display: flex; align-items: center; gap: 1rem;
+      cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07); text-align: left;
+    }
+    .teacher-btn:active { transform: scale(0.98); }
+    .teacher-icon {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: #eff6ff; color: #2563eb;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; flex-shrink: 0;
+    }
+    .teacher-btn-name { font-size: 1.05rem; font-weight: 700; color: #1e293b; }
+    .teacher-btn-sub { font-size: 0.82rem; color: #94a3b8; margin-top: 0.15rem; }
+
+    .no-schedule { text-align: center; padding: 3rem 1rem; color: #94a3b8; }
+
+    /* 학생 목록 화면 */
+    #mainPage { display: none; }
+
+    /* 탭 */
+    .tabs {
+      display: flex; background: white;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .tab-btn {
+      flex: 1; padding: 0.9rem 0.5rem;
+      border: none; background: none; cursor: pointer;
+      font-size: 0.82rem; color: #94a3b8; font-weight: 600;
+      border-bottom: 3px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      position: relative;
+    }
+    .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .tab-count {
+      display: inline-block;
+      background: #e2e8f0; color: #64748b;
+      border-radius: 10px; padding: 0.05rem 0.45rem;
+      font-size: 0.72rem; margin-left: 0.3rem;
+      vertical-align: middle;
+    }
+    .tab-btn.active .tab-count { background: #dbeafe; color: #2563eb; }
+
+    .tab-content { display: none; padding: 1rem; }
+    .tab-content.active { display: block; }
+
+    /* 학생 카드 */
+    .student-card {
+      background: white; border-radius: 12px;
+      padding: 1rem 1.2rem; margin-bottom: 0.6rem;
+      cursor: pointer; transition: transform 0.1s;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.06);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .student-card:active { transform: scale(0.99); }
+    .student-card-left { display: flex; align-items: center; gap: 0.8rem; }
+    .student-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+    }
+    .avatar-pending { background: #f1f5f9; color: #64748b; }
+    .avatar-in { background: #d1fae5; color: #059669; }
+    .avatar-out { background: #dbeafe; color: #2563eb; }
+    .student-name { font-size: 0.95rem; font-weight: 600; color: #1e293b; }
+    .student-code { font-size: 0.78rem; color: #94a3b8; }
+    .student-time { text-align: right; font-size: 0.82rem; color: #64748b; }
+    .student-time .time-val { font-weight: 600; color: #1e293b; font-size: 0.88rem; }
+
+    /* 상세 모달 */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      display: none; align-items: flex-end; justify-content: center;
+      z-index: 100;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white; border-radius: 20px 20px 0 0;
+      padding: 1.5rem; width: 100%; max-width: 500px;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle { width: 40px; height: 4px; background: #e2e8f0; border-radius: 2px; margin: 0 auto 1.2rem; }
+    .modal-name { font-size: 1.3rem; font-weight: 700; color: #1e293b; margin-bottom: 1.5rem; }
+    .modal-row { display: flex; justify-content: space-between; padding: 0.8rem 0; border-bottom: 1px solid #f1f5f9; }
+    .modal-row:last-of-type { border-bottom: none; }
+    .modal-label { color: #64748b; font-size: 0.9rem; }
+    .modal-val { font-weight: 600; font-size: 0.9rem; color: #1e293b; }
+    .modal-close {
+      width: 100%; margin-top: 1.2rem;
+      padding: 0.9rem; background: #f1f5f9;
+      border: none; border-radius: 10px;
+      font-size: 0.95rem; color: #64748b; cursor: pointer;
+    }
+
+    .empty-tab { text-align: center; padding: 2.5rem 1rem; color: #94a3b8; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1 id="headerTitle">ThinkUp 선생님</h1>
+    <div class="date-info" id="headerDate"></div>
+  </div>
+  <button class="back-btn" id="backBtn" onclick="goBack()" style="display:none">← 선생님 선택</button>
+</div>
+
+<!-- 선생님 선택 화면 -->
+<div id="selectPage">
+  <p class="select-title" id="selectTitle">오늘 수업 선생님</p>
+  <div class="teacher-list" id="teacherList">
+    <div class="no-schedule">불러오는 중...</div>
+  </div>
+</div>
+
+<!-- 학생 목록 화면 -->
+<div id="mainPage">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('pending')">
+      수업할 학생 <span class="tab-count" id="cnt-pending">0</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('in')">
+      입실 <span class="tab-count" id="cnt-in">0</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('out')">
+      퇴실 <span class="tab-count" id="cnt-out">0</span>
+    </button>
+  </div>
+
+  <div class="tab-content active" id="tab-pending"></div>
+  <div class="tab-content" id="tab-in"></div>
+  <div class="tab-content" id="tab-out"></div>
+</div>
+
+<!-- 상세 모달 -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-name" id="modalName"></div>
+    <div class="modal-row"><span class="modal-label">코드</span><span class="modal-val" id="modalCode"></span></div>
+    <div class="modal-row"><span class="modal-label">입실 시각</span><span class="modal-val" id="modalIn"></span></div>
+    <div class="modal-row"><span class="modal-label">퇴실 시각</span><span class="modal-val" id="modalOut"></span></div>
+    <div class="modal-row"><span class="modal-label">수업 시간</span><span class="modal-val" id="modalDur"></span></div>
+    <button class="modal-close" onclick="document.getElementById('modalOverlay').classList.remove('open')">닫기</button>
+  </div>
+</div>
+
+<script>
+const DAYS_KR = ['일', '월', '화', '수', '목', '금', '토'];
+const DAY_CODES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+
+const now = new Date();
+const todayCode = DAY_CODES[now.getDay()];
+const todayStr = toDateStr(now);
+const todayLabel = `${now.getMonth()+1}월 ${now.getDate()}일 (${DAYS_KR[now.getDay()]}요일)`;
+
+document.getElementById('headerDate').textContent = todayLabel;
+
+let currentTeacher = null;
+let myStudents = []; // [{name, code}]
+let attendanceData = {}; // code -> {checkIn, checkOut, durationMinutes}
+let unsubscribe = null;
+
+function toDateStr(d) {
+  return d.toISOString().split('T')[0];
+}
+function formatDuration(min) {
+  if (!min) return '-';
+  const h = Math.floor(min / 60), m = min % 60;
+  if (h === 0) return `${m}분`;
+  if (m === 0) return `${h}시간`;
+  return `${h}시간 ${m}분`;
+}
+
+// 선생님 목록 로드
+async function loadTeachers() {
+  try {
+    const doc = await db.collection('schedules').doc(todayCode).get();
+    const list = document.getElementById('teacherList');
+
+    if (!doc.exists || !doc.data().teachers?.length) {
+      list.innerHTML = '<div class="no-schedule">오늘 등록된 수업 일정이 없습니다.</div>';
+      return;
+    }
+
+    const teachers = doc.data().teachers;
+    list.innerHTML = '';
+    teachers.forEach(t => {
+      const btn = document.createElement('button');
+      btn.className = 'teacher-btn';
+      btn.innerHTML = `
+        <div class="teacher-icon">👨‍🏫</div>
+        <div>
+          <div class="teacher-btn-name">${t.name} 선생님</div>
+          <div class="teacher-btn-sub">담당 학생 ${t.students.length}명</div>
+        </div>
+      `;
+      btn.onclick = () => selectTeacher(t);
+      list.appendChild(btn);
+    });
+  } catch (err) {
+    document.getElementById('teacherList').innerHTML =
+      `<div class="no-schedule" style="color:#ef4444">오류: ${err.message}</div>`;
+  }
+}
+
+function selectTeacher(teacher) {
+  currentTeacher = teacher;
+  myStudents = teacher.students || [];
+  attendanceData = {};
+
+  document.getElementById('headerTitle').textContent = `${teacher.name} 선생님`;
+  document.getElementById('backBtn').style.display = 'block';
+  document.getElementById('selectPage').style.display = 'none';
+  document.getElementById('mainPage').style.display = 'block';
+
+  renderStudents();
+  startListening();
+}
+
+function goBack() {
+  if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  currentTeacher = null;
+  document.getElementById('backBtn').style.display = 'none';
+  document.getElementById('headerTitle').textContent = 'ThinkUp 선생님';
+  document.getElementById('mainPage').style.display = 'none';
+  document.getElementById('selectPage').style.display = 'block';
+}
+
+// 실시간 출결 감지
+function startListening() {
+  if (unsubscribe) unsubscribe();
+  unsubscribe = db.collection('attendance').doc(todayStr)
+    .collection('students')
+    .onSnapshot(snap => {
+      snap.forEach(doc => {
+        attendanceData[doc.id] = doc.data();
+      });
+      renderStudents();
+    });
+}
+
+// 학생 렌더링
+function renderStudents() {
+  const pending = [], checkedIn = [], checkedOut = [];
+
+  myStudents.forEach(s => {
+    const att = attendanceData[s.code];
+    if (!att?.checkIn) pending.push(s);
+    else if (!att.checkOut) checkedIn.push({ ...s, att });
+    else checkedOut.push({ ...s, att });
+  });
+
+  document.getElementById('cnt-pending').textContent = pending.length;
+  document.getElementById('cnt-in').textContent = checkedIn.length;
+  document.getElementById('cnt-out').textContent = checkedOut.length;
+
+  renderList('tab-pending', pending, 'pending');
+  renderList('tab-in', checkedIn, 'in');
+  renderList('tab-out', checkedOut, 'out');
+}
+
+function renderList(containerId, students, type) {
+  const el = document.getElementById(containerId);
+  if (students.length === 0) {
+    el.innerHTML = '<div class="empty-tab">학생이 없습니다.</div>';
+    return;
+  }
+  el.innerHTML = students.map(s => {
+    let timeHtml = '';
+    let avatarClass = 'avatar-pending';
+    if (type === 'in') {
+      avatarClass = 'avatar-in';
+      timeHtml = `<div class="student-time"><div>입실</div><div class="time-val">${s.att?.checkIn || '-'}</div></div>`;
+    } else if (type === 'out') {
+      avatarClass = 'avatar-out';
+      timeHtml = `<div class="student-time"><div>퇴실</div><div class="time-val">${s.att?.checkOut || '-'}</div></div>`;
+    }
+    return `
+      <div class="student-card" onclick="showDetail('${s.code}', '${s.name}')">
+        <div class="student-card-left">
+          <div class="student-avatar ${avatarClass}">${s.name[0]}</div>
+          <div>
+            <div class="student-name">${s.name}</div>
+            <div class="student-code">${s.code}</div>
+          </div>
+        </div>
+        ${timeHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', ['pending', 'in', 'out'][i] === tab);
+  });
+  document.querySelectorAll('.tab-content').forEach((c, i) => {
+    c.classList.toggle('active', ['pending', 'in', 'out'][i] === tab);
+  });
+}
+
+function showDetail(code, name) {
+  const att = attendanceData[code];
+  document.getElementById('modalName').textContent = name + ' 학생';
+  document.getElementById('modalCode').textContent = code;
+  document.getElementById('modalIn').textContent = att?.checkIn || '-';
+  document.getElementById('modalOut').textContent = att?.checkOut || '-';
+  document.getElementById('modalDur').textContent = att?.durationMinutes ? formatDuration(att.durationMinutes) : '-';
+  document.getElementById('modalOverlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modalOverlay')) {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+}
+
+// Service Worker 등록
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(console.warn);
+}
+
+loadTeachers();
+</script>
+</body>
+</html>
