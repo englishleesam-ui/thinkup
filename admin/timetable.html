@@ -17,12 +17,16 @@
     }
     .topbar a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; }
     .topbar h1 { font-size: 1.1rem; flex: 1; }
+    .btn-print-top {
+      background: rgba(255,255,255,0.15); color: white;
+      border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
+      padding: 0.4rem 1rem; font-size: 0.85rem; cursor: pointer; font-weight: 600;
+    }
+    .btn-print-top:hover { background: rgba(255,255,255,0.25); }
 
     .main { max-width: 800px; margin: 0 auto; padding: 1.5rem 1rem 100px; }
 
-    .day-tabs {
-      display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
-    }
+    .day-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
     .day-tab {
       padding: 0.55rem 1.2rem; border-radius: 20px;
       border: 2px solid #e2e8f0; background: white;
@@ -31,15 +35,10 @@
     }
     .day-tab.active { background: #2563eb; border-color: #2563eb; color: white; }
     .day-tab:hover:not(.active) { border-color: #2563eb; color: #2563eb; }
-    .day-tab .cnt {
-      font-size: 0.72rem; font-weight: 500;
-      opacity: 0.7; margin-left: 3px;
-    }
+    .day-tab .cnt { font-size: 0.72rem; font-weight: 500; opacity: 0.7; margin-left: 3px; }
 
-    .section-header {
-      display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem;
-    }
-    .section-title { font-size: 0.95rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
+    .section-title { font-size: 0.95rem; font-weight: 700; color: #475569; letter-spacing: 0.03em; }
 
     .teacher-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
     .teacher-chip {
@@ -63,7 +62,6 @@
       padding: 0.5rem 1rem; border-radius: 20px;
       background: transparent; border: 2px dashed #93c5fd;
       cursor: pointer; font-size: 0.9rem; color: #2563eb; font-weight: 600;
-      transition: all 0.15s;
     }
     .btn-add-outline:hover { background: #eff6ff; }
 
@@ -78,14 +76,12 @@
     .student-panel-title { font-size: 1rem; font-weight: 700; color: #1e3a5f; }
     .student-count { font-size: 0.82rem; color: #94a3b8; margin-left: 0.5rem; }
 
-    .student-list { padding: 0.8rem 1rem; }
+    .student-list { padding: 0.5rem 0.8rem; }
     .student-row {
-      display: flex; align-items: center; gap: 0.7rem;
-      padding: 0.55rem 0.7rem; border-radius: 10px;
-      transition: background 0.1s; position: relative;
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.5rem 0.5rem; border-radius: 10px; transition: background 0.1s;
     }
     .student-row:hover { background: #f8fafc; }
-
     .snum { font-size: 0.78rem; color: #94a3b8; width: 22px; text-align: right; flex-shrink: 0; }
 
     .sname-wrap { flex: 1; }
@@ -100,56 +96,66 @@
       padding: 0.2rem 0.5rem; outline: none; width: 120px;
     }
 
+    .grade-badge {
+      padding: 0.2rem 0.6rem; border-radius: 12px;
+      font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+    }
+    .grade-elem  { background: #dcfce7; color: #15803d; }
+    .grade-mid   { background: #dbeafe; color: #1d4ed8; }
+    .grade-high  { background: #fce7f3; color: #9d174d; }
+    .grade-none  { background: #f1f5f9; color: #94a3b8; }
+
     .code-badge {
-      padding: 0.25rem 0.75rem; border-radius: 20px;
-      font-size: 0.8rem; font-weight: 700; cursor: pointer;
-      min-width: 68px; text-align: center; flex-shrink: 0;
+      padding: 0.2rem 0.7rem; border-radius: 12px;
+      font-size: 0.8rem; font-weight: 700; flex-shrink: 0; min-width: 60px; text-align: center;
     }
-    .code-has { background: #dbeafe; color: #1d4ed8; }
-    .code-none { background: #f1f5f9; color: #94a3b8; border: 1.5px dashed #cbd5e1; }
-    .code-input {
-      border: 1.5px solid #2563eb; border-radius: 20px;
-      padding: 0.2rem 0.5rem; text-align: center;
-      font-size: 0.8rem; font-weight: 700; color: #1d4ed8;
-      width: 68px; outline: none;
-    }
+    .code-has { background: #ede9fe; color: #6d28d9; }
+    .code-none { background: #f1f5f9; color: #94a3b8; border: 1.5px dashed #cbd5e1; font-size: 0.72rem; }
 
     .del-student {
       width: 26px; height: 26px; border-radius: 50%;
       background: #fee2e2; color: #ef4444;
-      border: none; cursor: pointer; font-size: 0.85rem;
+      border: none; cursor: pointer; font-size: 0.82rem;
       opacity: 0; transition: opacity 0.15s; flex-shrink: 0;
     }
     .student-row:hover .del-student { opacity: 1; }
 
+    /* Add student row */
     .add-student-row {
-      padding: 0.8rem 1rem; display: flex; gap: 0.5rem;
-      border-top: 1px solid #f1f5f9; align-items: center;
+      padding: 1rem 1rem; border-top: 1px solid #f1f5f9;
+      display: flex; gap: 0.5rem; align-items: flex-end; flex-wrap: wrap;
     }
+    .add-field { display: flex; flex-direction: column; gap: 0.3rem; }
+    .add-field label { font-size: 0.75rem; color: #64748b; font-weight: 600; }
     .add-name-input {
-      flex: 1; border: 1.5px solid #e2e8f0; border-radius: 10px;
-      padding: 0.5rem 0.8rem; font-size: 0.9rem; outline: none;
-      transition: border-color 0.15s;
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 0.5rem 0.8rem; font-size: 0.9rem; outline: none; width: 130px;
     }
     .add-name-input:focus { border-color: #2563eb; }
-    .add-code-input {
-      width: 80px; border: 1.5px solid #e2e8f0; border-radius: 10px;
-      padding: 0.5rem 0.5rem; font-size: 0.9rem; outline: none;
-      text-align: center; transition: border-color 0.15s;
+    .add-grade-select {
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 0.5rem 0.5rem; font-size: 0.85rem; outline: none;
+      background: white; cursor: pointer;
     }
-    .add-code-input:focus { border-color: #2563eb; }
+    .add-grade-select:focus { border-color: #2563eb; }
+    .code-preview {
+      border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 0.5rem 0.8rem; font-size: 0.9rem;
+      background: #f8fafc; color: #94a3b8; width: 80px; text-align: center;
+      font-weight: 700;
+    }
+    .code-preview.ready { background: #ede9fe; color: #6d28d9; border-color: #c4b5fd; }
     .btn-add-student {
       background: #2563eb; color: white; border: none;
-      border-radius: 10px; padding: 0.5rem 1rem;
-      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      border-radius: 10px; padding: 0.55rem 1.2rem;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer; white-space: nowrap;
     }
     .btn-add-student:hover { background: #1d4ed8; }
 
-    .empty-state { padding: 2.5rem; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+    .empty-state { padding: 2rem; text-align: center; color: #94a3b8; font-size: 0.9rem; }
     .no-teacher-msg {
       background: white; border-radius: 16px; padding: 2.5rem;
-      text-align: center; color: #94a3b8;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      text-align: center; color: #94a3b8; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     }
 
     .save-bar {
@@ -157,17 +163,71 @@
       background: white; border-top: 1px solid #e2e8f0;
       padding: 0.8rem 1.5rem;
       display: flex; align-items: center; justify-content: space-between;
-      gap: 1rem;
     }
     .save-status { font-size: 0.85rem; color: #64748b; }
     .btn-save {
-      background: #2563eb; color: white;
-      border: none; border-radius: 12px;
-      padding: 0.8rem 2.5rem; font-size: 1rem;
-      font-weight: 700; cursor: pointer;
+      background: #2563eb; color: white; border: none;
+      border-radius: 12px; padding: 0.8rem 2.5rem;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
     }
     .btn-save:hover { background: #1d4ed8; }
     .btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    /* ── Print Modal ── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 100;
+      align-items: flex-start; justify-content: center;
+      padding: 2rem 1rem; overflow-y: auto;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: white; border-radius: 20px;
+      width: 100%; max-width: 680px; overflow: hidden;
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 1.5rem; border-bottom: 1px solid #f1f5f9;
+    }
+    .modal-header h2 { font-size: 1.1rem; font-weight: 700; color: #1e3a5f; }
+    .modal-actions { display: flex; gap: 0.7rem; }
+    .btn-modal-print {
+      background: #2563eb; color: white; border: none;
+      border-radius: 8px; padding: 0.5rem 1.2rem;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+    }
+    .btn-modal-close {
+      background: #f1f5f9; color: #475569; border: none;
+      border-radius: 8px; padding: 0.5rem 1rem;
+      font-size: 0.9rem; cursor: pointer;
+    }
+    .modal-body { padding: 1.5rem; }
+    .grade-section { margin-bottom: 1.5rem; }
+    .grade-section-title {
+      font-size: 0.85rem; font-weight: 700; color: #64748b;
+      letter-spacing: 0.05em; margin-bottom: 0.6rem;
+      padding-bottom: 0.4rem; border-bottom: 2px solid #f1f5f9;
+    }
+    .code-table {
+      width: 100%; border-collapse: collapse; font-size: 0.9rem;
+    }
+    .code-table th {
+      text-align: left; padding: 0.4rem 0.6rem;
+      background: #f8fafc; color: #64748b; font-size: 0.78rem; font-weight: 700;
+    }
+    .code-table td { padding: 0.45rem 0.6rem; border-bottom: 1px solid #f8fafc; }
+    .code-table tr:last-child td { border-bottom: none; }
+    .code-val { font-weight: 700; color: #6d28d9; font-size: 1rem; }
+    .no-code-val { color: #94a3b8; font-size: 0.8rem; }
+
+    /* Print styles */
+    @media print {
+      body > *:not(.modal-overlay) { display: none !important; }
+      .modal-overlay { display: block !important; position: static !important; background: none !important; padding: 0 !important; }
+      .modal-box { border-radius: 0 !important; box-shadow: none !important; max-width: none !important; }
+      .modal-actions { display: none !important; }
+      .modal-header { border-bottom: 2px solid #1e3a5f !important; }
+    }
   </style>
 </head>
 <body>
@@ -175,22 +235,35 @@
 <div class="topbar">
   <a href="./index.html">← 대시보드</a>
   <h1>시간표 관리</h1>
+  <button class="btn-print-top" onclick="openPrintModal()">🖨 코드 출력</button>
 </div>
 
 <div class="main">
   <div class="day-tabs" id="dayTabs"></div>
-
   <div class="section-header">
     <span class="section-title" id="teacherSectionTitle">선생님</span>
   </div>
   <div class="teacher-grid" id="teacherGrid"></div>
-
   <div id="studentArea"></div>
 </div>
 
 <div class="save-bar">
   <span class="save-status" id="saveStatus">데이터 불러오는 중...</span>
   <button class="btn-save" id="saveBtn" onclick="saveAll()">저장</button>
+</div>
+
+<!-- Print Modal -->
+<div class="modal-overlay" id="printModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>학생 코드 목록</h2>
+      <div class="modal-actions">
+        <button class="btn-modal-print" onclick="window.print()">🖨 인쇄</button>
+        <button class="btn-modal-close" onclick="closePrintModal()">닫기</button>
+      </div>
+    </div>
+    <div class="modal-body" id="printModalBody"></div>
+  </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -200,12 +273,21 @@
   if (!sessionStorage.getItem('thinkup_admin')) location.href = './index.html';
 
   const DAYS = [
-    {code:'mon', label:'월'},
-    {code:'tue', label:'화'},
-    {code:'wed', label:'수'},
-    {code:'thu', label:'목'},
-    {code:'fri', label:'금'},
-    {code:'sat', label:'토'},
+    {code:'mon', label:'월'}, {code:'tue', label:'화'},
+    {code:'wed', label:'수'}, {code:'thu', label:'목'},
+    {code:'fri', label:'금'}, {code:'sat', label:'토'},
+  ];
+
+  const GRADES = [
+    {key:'초4', label:'초등 4학년', prefix:4, cls:'grade-elem'},
+    {key:'초5', label:'초등 5학년', prefix:5, cls:'grade-elem'},
+    {key:'초6', label:'초등 6학년', prefix:6, cls:'grade-elem'},
+    {key:'중1', label:'중학교 1학년', prefix:7, cls:'grade-mid'},
+    {key:'중2', label:'중학교 2학년', prefix:8, cls:'grade-mid'},
+    {key:'중3', label:'중학교 3학년', prefix:9, cls:'grade-mid'},
+    {key:'고1', label:'고등 1학년', prefix:1, cls:'grade-high'},
+    {key:'고2', label:'고등 2학년', prefix:2, cls:'grade-high'},
+    {key:'고3', label:'고등 3학년', prefix:3, cls:'grade-high'},
   ];
 
   let schedule = {};
@@ -214,6 +296,56 @@
   let hasChanges = false;
 
   DAYS.forEach(d => { schedule[d.code] = { day: d.label, teachers: [] }; });
+
+  // ── Helpers ────────────────────────────────────────────────
+
+  function gradeInfo(key) {
+    return GRADES.find(g => g.key === key) || null;
+  }
+
+  function gradeCls(key) {
+    const g = gradeInfo(key);
+    return g ? g.cls : 'grade-none';
+  }
+
+  /** Collect all used codes across ALL days */
+  function usedCodesSet() {
+    const s = new Set();
+    for (const d of DAYS) {
+      for (const t of (schedule[d.code]?.teachers || [])) {
+        for (const st of (t.students || [])) {
+          if (st.code) s.add(st.code);
+        }
+      }
+    }
+    return s;
+  }
+
+  /** Get next available code for a grade key */
+  function nextCode(gradeKey) {
+    const g = gradeInfo(gradeKey);
+    if (!g) return '';
+    const used = usedCodesSet();
+    const start = g.prefix * 1000 + 1;
+    const end   = g.prefix * 1000 + 999;
+    for (let i = start; i <= end; i++) {
+      if (!used.has(String(i))) return String(i);
+    }
+    return '';
+  }
+
+  function setStatus(msg, color) {
+    const el = document.getElementById('saveStatus');
+    el.textContent = msg;
+    el.style.color = color || '#64748b';
+  }
+
+  function markChanged() {
+    hasChanges = true;
+    setStatus('저장하지 않은 변경사항이 있습니다', '#f59e0b');
+  }
+
+  // ── Load ───────────────────────────────────────────────────
 
   async function loadSchedule() {
     try {
@@ -232,27 +364,15 @@
     renderAll();
   }
 
-  function setStatus(msg, color) {
-    const el = document.getElementById('saveStatus');
-    el.textContent = msg;
-    el.style.color = color || '#64748b';
-  }
+  // ── Render ─────────────────────────────────────────────────
 
-  function markChanged() {
-    hasChanges = true;
-    setStatus('저장하지 않은 변경사항이 있습니다', '#f59e0b');
-  }
-
-  function renderAll() {
-    renderDayTabs();
-    renderTeachers();
-  }
+  function renderAll() { renderDayTabs(); renderTeachers(); }
 
   function renderDayTabs() {
     document.getElementById('dayTabs').innerHTML = DAYS.map(d => {
       const cnt = (schedule[d.code]?.teachers || []).length;
       return `<button class="day-tab ${d.code === currentDay ? 'active' : ''}" onclick="selectDay('${d.code}')">
-        ${d.label}요일<span class="cnt">${cnt > 0 ? cnt+'명' : ''}</span>
+        ${d.label}요일<span class="cnt">${cnt ? cnt+'명' : ''}</span>
       </button>`;
     }).join('');
   }
@@ -268,21 +388,19 @@
     const dayLabel = DAYS.find(d => d.code === currentDay).label;
     document.getElementById('teacherSectionTitle').textContent = `${dayLabel}요일 선생님`;
 
-    const grid = document.getElementById('teacherGrid');
-    grid.innerHTML = teachers.map((t, i) => `
-      <div class="teacher-chip ${currentTeacherIdx === i ? 'active' : ''}" onclick="selectTeacher(${i})">
-        ${t.name}
-        <span class="chip-del" onclick="event.stopPropagation();deleteTeacher(${i})" title="삭제">✕</span>
-      </div>
-    `).join('') + `<button class="btn-add-outline" onclick="addTeacher()">+ 선생님 추가</button>`;
+    document.getElementById('teacherGrid').innerHTML =
+      teachers.map((t, i) => `
+        <div class="teacher-chip ${currentTeacherIdx === i ? 'active' : ''}" onclick="selectTeacher(${i})">
+          ${t.name}
+          <span class="chip-del" onclick="event.stopPropagation();deleteTeacher(${i})" title="삭제">✕</span>
+        </div>
+      `).join('') +
+      `<button class="btn-add-outline" onclick="addTeacher()">+ 선생님 추가</button>`;
 
     renderStudentPanel();
   }
 
-  function selectTeacher(idx) {
-    currentTeacherIdx = idx;
-    renderTeachers();
-  }
+  function selectTeacher(idx) { currentTeacherIdx = idx; renderTeachers(); }
 
   function renderStudentPanel() {
     const area = document.getElementById('studentArea');
@@ -296,19 +414,23 @@
 
     const rows = teacher.students.length === 0
       ? `<div class="empty-state">학생이 없습니다. 아래에서 추가하세요.</div>`
-      : teacher.students.map((s, i) => `
-          <div class="student-row">
-            <span class="snum">${i+1}</span>
-            <div class="sname-wrap">
-              <span class="sname-text" ondblclick="editName(${i})" title="더블클릭으로 이름 수정" id="sname_${i}">${s.name}</span>
-            </div>
-            <div class="code-badge ${s.code ? 'code-has' : 'code-none'}"
-                 onclick="editCode(${i})" title="클릭으로 코드 수정" id="scode_${i}">
-              ${s.code || '코드없음'}
-            </div>
-            <button class="del-student" onclick="deleteStudent(${i})" title="삭제">✕</button>
-          </div>
-        `).join('');
+      : teacher.students.map((s, i) => {
+          const g = gradeInfo(s.grade);
+          return `
+            <div class="student-row">
+              <span class="snum">${i+1}</span>
+              <div class="sname-wrap">
+                <span class="sname-text" ondblclick="editName(${i})" title="더블클릭으로 이름 수정" id="sname_${i}">${s.name}</span>
+              </div>
+              <span class="grade-badge ${gradeCls(s.grade)}">${s.grade || '학년?'}</span>
+              <span class="code-badge ${s.code ? 'code-has' : 'code-none'}">${s.code || '코드없음'}</span>
+              <button class="del-student" onclick="deleteStudent(${i})" title="삭제">✕</button>
+            </div>`;
+        }).join('');
+
+    const gradeOptions = GRADES.map(g =>
+      `<option value="${g.key}">${g.label}</option>`
+    ).join('');
 
     area.innerHTML = `
       <div class="student-panel">
@@ -320,12 +442,42 @@
         </div>
         <div class="student-list">${rows}</div>
         <div class="add-student-row">
-          <input class="add-name-input" id="addNameInput" placeholder="학생 이름" onkeydown="if(event.key==='Enter')document.getElementById('addCodeInput').focus()">
-          <input class="add-code-input" id="addCodeInput" placeholder="코드(선택)" maxlength="4" onkeydown="if(event.key==='Enter')confirmAddStudent()">
+          <div class="add-field">
+            <label>학생 이름</label>
+            <input class="add-name-input" id="addNameInput" placeholder="이름 입력"
+              onkeydown="if(event.key==='Enter')document.getElementById('addGradeSelect').focus()">
+          </div>
+          <div class="add-field">
+            <label>학년</label>
+            <select class="add-grade-select" id="addGradeSelect" onchange="previewCode()">
+              <option value="">학년 선택</option>
+              ${gradeOptions}
+            </select>
+          </div>
+          <div class="add-field">
+            <label>부여 코드</label>
+            <div class="code-preview" id="codePreview">—</div>
+          </div>
           <button class="btn-add-student" onclick="confirmAddStudent()">+ 추가</button>
         </div>
       </div>`;
   }
+
+  function previewCode() {
+    const grade = document.getElementById('addGradeSelect').value;
+    const prev = document.getElementById('codePreview');
+    if (!grade) { prev.textContent = '—'; prev.classList.remove('ready'); return; }
+    const code = nextCode(grade);
+    if (code) {
+      prev.textContent = code;
+      prev.classList.add('ready');
+    } else {
+      prev.textContent = '포화';
+      prev.classList.remove('ready');
+    }
+  }
+
+  // ── Actions ────────────────────────────────────────────────
 
   function addTeacher() {
     const name = prompt('선생님 이름을 입력하세요:');
@@ -348,17 +500,23 @@
 
   function confirmAddStudent() {
     const nameEl = document.getElementById('addNameInput');
-    const codeEl = document.getElementById('addCodeInput');
+    const gradeEl = document.getElementById('addGradeSelect');
     const name = nameEl.value.trim();
+    const grade = gradeEl.value;
     if (!name) { nameEl.focus(); return; }
-    const code = codeEl.value.trim();
-    schedule[currentDay].teachers[currentTeacherIdx].students.push({ name, code });
+    if (!grade) { gradeEl.focus(); return; }
+
+    const code = nextCode(grade);
+    if (!code) { alert('해당 학년 코드가 모두 소진되었습니다.'); return; }
+
+    schedule[currentDay].teachers[currentTeacherIdx].students.push({ name, grade, code });
     nameEl.value = '';
-    codeEl.value = '';
+    gradeEl.value = '';
+    document.getElementById('codePreview').textContent = '—';
+    document.getElementById('codePreview').classList.remove('ready');
     nameEl.focus();
     markChanged();
     renderStudentPanel();
-    renderDayTabs();
     renderTeachers();
   }
 
@@ -374,12 +532,8 @@
     const el = document.getElementById('sname_' + idx);
     el.outerHTML = `<input class="sname-input" id="sname_${idx}" type="text" value="${s.name}"
       onblur="saveName(${idx},this.value)"
-      onkeydown="if(event.key==='Enter')this.blur()"
-      autofocus>`;
-    setTimeout(() => {
-      const inp = document.getElementById('sname_' + idx);
-      if (inp) { inp.focus(); inp.select(); }
-    }, 0);
+      onkeydown="if(event.key==='Enter')this.blur()" autofocus>`;
+    setTimeout(() => { const i = document.getElementById('sname_'+idx); if(i){i.focus();i.select();} }, 0);
   }
 
   function saveName(idx, value) {
@@ -390,62 +544,99 @@
     renderStudentPanel();
   }
 
-  function editCode(idx) {
-    const s = schedule[currentDay].teachers[currentTeacherIdx].students[idx];
-    const el = document.getElementById('scode_' + idx);
-    el.outerHTML = `<input class="code-input" id="scode_${idx}" type="text"
-      value="${s.code || ''}" placeholder="4자리" maxlength="4"
-      onblur="saveCode(${idx},this.value)"
-      onkeydown="if(event.key==='Enter')this.blur()"
-      autofocus>`;
-    setTimeout(() => {
-      const inp = document.getElementById('scode_' + idx);
-      if (inp) { inp.focus(); inp.select(); }
-    }, 0);
-  }
-
-  function saveCode(idx, value) {
-    schedule[currentDay].teachers[currentTeacherIdx].students[idx].code = value.trim();
-    markChanged();
-    renderStudentPanel();
-  }
+  // ── Save ───────────────────────────────────────────────────
 
   async function saveAll() {
     const btn = document.getElementById('saveBtn');
-    btn.textContent = '저장 중...';
-    btn.disabled = true;
+    btn.textContent = '저장 중...'; btn.disabled = true;
     try {
       const batch = db.batch();
-
       for (const d of DAYS) {
-        const ref = db.collection('schedules').doc(d.code);
-        batch.set(ref, schedule[d.code]);
+        batch.set(db.collection('schedules').doc(d.code), schedule[d.code]);
       }
-
-      // collect all coded students (deduplicate by code, last write wins)
+      // Save /students/{code}
       const allStudents = {};
       for (const d of DAYS) {
         for (const t of (schedule[d.code]?.teachers || [])) {
           for (const s of (t.students || [])) {
-            if (s.code) allStudents[s.code] = { name: s.name, code: s.code };
+            if (s.code) allStudents[s.code] = { name: s.name, code: s.code, grade: s.grade || '' };
           }
         }
       }
       for (const [code, student] of Object.entries(allStudents)) {
         batch.set(db.collection('students').doc(code), student);
       }
-
       await batch.commit();
       hasChanges = false;
-      const codedCount = Object.keys(allStudents).length;
-      setStatus(`✓ 저장 완료 — 코드 부여 학생 ${codedCount}명`, '#10b981');
+      setStatus(`✓ 저장 완료 — 코드 등록 학생 ${Object.keys(allStudents).length}명`, '#10b981');
+      renderDayTabs();
     } catch(e) {
       setStatus('저장 오류: ' + e.message, '#ef4444');
     }
-    btn.textContent = '저장';
-    btn.disabled = false;
+    btn.textContent = '저장'; btn.disabled = false;
   }
 
+  // ── Print Modal ────────────────────────────────────────────
+
+  function openPrintModal() {
+    // Collect all unique students (by code), ungrouped then group by grade
+    const byGrade = {};
+    const noCode = [];
+
+    for (const d of DAYS) {
+      for (const t of (schedule[d.code]?.teachers || [])) {
+        for (const s of (t.students || [])) {
+          if (!s.code) { noCode.push(s); continue; }
+          if (!byGrade[s.grade]) byGrade[s.grade] = {};
+          byGrade[s.grade][s.code] = s; // deduplicate by code
+        }
+      }
+    }
+
+    let html = '';
+    const gradeOrder = GRADES.map(g => g.key);
+    for (const gKey of gradeOrder) {
+      if (!byGrade[gKey]) continue;
+      const g = gradeInfo(gKey);
+      const students = Object.values(byGrade[gKey]).sort((a,b) => a.code.localeCompare(b.code));
+      html += `<div class="grade-section">
+        <div class="grade-section-title">${g.label}</div>
+        <table class="code-table">
+          <thead><tr><th>번호</th><th>이름</th><th>코드</th></tr></thead>
+          <tbody>${students.map((s,i) =>
+            `<tr><td>${i+1}</td><td>${s.name}</td><td class="code-val">${s.code}</td></tr>`
+          ).join('')}</tbody>
+        </table>
+      </div>`;
+    }
+
+    if (noCode.length > 0) {
+      html += `<div class="grade-section">
+        <div class="grade-section-title">코드 미부여</div>
+        <table class="code-table">
+          <thead><tr><th>번호</th><th>이름</th><th>코드</th></tr></thead>
+          <tbody>${noCode.map((s,i) =>
+            `<tr><td>${i+1}</td><td>${s.name}</td><td class="no-code-val">미부여</td></tr>`
+          ).join('')}</tbody>
+        </table>
+      </div>`;
+    }
+
+    if (!html) html = `<div class="empty-state">등록된 학생이 없습니다.</div>`;
+
+    document.getElementById('printModalBody').innerHTML = html;
+    document.getElementById('printModal').classList.add('open');
+  }
+
+  function closePrintModal() {
+    document.getElementById('printModal').classList.remove('open');
+  }
+
+  document.getElementById('printModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('printModal')) closePrintModal();
+  });
+
+  // ── Init ───────────────────────────────────────────────────
   loadSchedule();
 </script>
 </body>
