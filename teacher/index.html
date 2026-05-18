@@ -187,12 +187,14 @@
 <script>
 const DAYS_KR = ['일', '월', '화', '수', '목', '금', '토'];
 const DAY_CODES = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+const DAY_LABEL_KR = { mon: '월요일', tue: '화요일', wed: '수요일', thu: '목요일', fri: '금요일', sat: '토요일', sun: '일요일' };
 
 const now = new Date();
 const todayCode = DAY_CODES[now.getDay()];
 const todayStr = toDateStr(now);
 const todayLabel = `${now.getMonth()+1}월 ${now.getDate()}일 (${DAYS_KR[now.getDay()]}요일)`;
 
+const todayLabelFull = DAY_LABEL_KR[todayCode] || '';
 document.getElementById('headerDate').textContent = todayLabel;
 
 let currentTeacher = null;

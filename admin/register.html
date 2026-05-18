@@ -20,69 +20,56 @@
     .topbar a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; }
     .topbar h1 { font-size: 1.1rem; }
 
-    .container { max-width: 960px; margin: 2rem auto; padding: 0 1rem; }
+    .container { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
 
-    /* 업로드 영역 2개 */
-    .upload-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
-      margin-bottom: 1.5rem;
+    /* 안내 박스 */
+    .guide {
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      border-radius: 12px; padding: 1rem 1.2rem;
+      margin-bottom: 1.5rem; font-size: 0.88rem; color: #1e40af;
+      line-height: 1.7;
     }
-    @media (max-width: 600px) { .upload-grid { grid-template-columns: 1fr; } }
+    .guide strong { display: block; margin-bottom: 0.3rem; font-size: 0.95rem; }
 
-    .upload-card {
-      background: white; border-radius: 16px;
-      padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    .upload-card h3 { font-size: 0.95rem; font-weight: 700; color: #1e293b; margin-bottom: 0.3rem; }
-    .upload-card .desc { font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem; line-height: 1.5; }
-
+    /* 드래그 영역 */
     .drop-zone {
-      border: 2px dashed #93c5fd; border-radius: 12px;
-      padding: 1.5rem 1rem; text-align: center; cursor: pointer;
+      background: white; border: 2.5px dashed #93c5fd;
+      border-radius: 16px; padding: 3rem 2rem;
+      text-align: center; cursor: pointer;
       transition: background 0.2s, border-color 0.2s;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
     .drop-zone:hover, .drop-zone.dragover { background: #eff6ff; border-color: #2563eb; }
-    .drop-zone.done { border-color: #10b981; background: #f0fdf4; }
+    .drop-zone.done { border-color: #10b981; background: #f0fdf4; border-style: solid; }
     .drop-zone input { display: none; }
-    .drop-zone .dz-icon { font-size: 2rem; margin-bottom: 0.5rem; }
-    .drop-zone .dz-text { font-size: 0.85rem; color: #64748b; }
-    .drop-zone.done .dz-text { color: #059669; font-weight: 600; }
+    .dz-icon { font-size: 3rem; margin-bottom: 0.8rem; }
+    .dz-title { font-size: 1.05rem; font-weight: 700; color: #1e40af; margin-bottom: 0.3rem; }
+    .dz-sub { font-size: 0.85rem; color: #64748b; }
+    .drop-zone.done .dz-title { color: #059669; }
+    .drop-zone.done .dz-sub { color: #6ee7b7; }
 
-    /* 상태 */
-    .status {
-      padding: 0.9rem 1.2rem; border-radius: 10px;
-      margin-bottom: 1rem; font-size: 0.9rem; display: none;
-    }
+    /* 상태 메시지 */
+    .status { padding: 0.9rem 1.2rem; border-radius: 10px; margin-bottom: 1rem; font-size: 0.9rem; display: none; }
     .status.loading { background: #fef3c7; color: #92400e; display: block; }
     .status.success { background: #d1fae5; color: #065f46; display: block; }
     .status.error   { background: #fee2e2; color: #991b1b; display: block; }
-    .status.warn    { background: #fff7ed; color: #9a3412; display: block; }
 
-    /* 결과 섹션 */
+    /* 결과 */
     #resultSection { display: none; }
     .result-header {
       display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;
     }
-    .result-header h2 { font-size: 1rem; color: #1e293b; font-weight: 700; }
-
-    .btn {
-      padding: 0.6rem 1.4rem; border-radius: 9px;
+    .result-header h2 { font-size: 1rem; font-weight: 700; color: #1e293b; }
+    .btn-save {
+      padding: 0.65rem 1.5rem; border-radius: 9px;
       font-size: 0.9rem; font-weight: 600; cursor: pointer;
-      border: none; transition: background 0.2s;
+      border: none; background: #2563eb; color: white;
+      transition: background 0.2s;
     }
-    .btn-save { background: #2563eb; color: white; }
     .btn-save:hover { background: #1d4ed8; }
     .btn-save:disabled { background: #93c5fd; cursor: not-allowed; }
-
-    /* 경고 목록 */
-    .warn-list {
-      background: #fff7ed; border-radius: 10px;
-      padding: 1rem 1.2rem; margin-bottom: 1.2rem; display: none;
-    }
-    .warn-list h4 { color: #9a3412; font-size: 0.85rem; margin-bottom: 0.5rem; }
-    .warn-list ul { padding-left: 1.2rem; }
-    .warn-list li { font-size: 0.82rem; color: #c2410c; margin-bottom: 0.25rem; }
 
     /* 탭 */
     .day-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; flex-wrap: wrap; }
@@ -93,6 +80,8 @@
       transition: all 0.15s;
     }
     .tab.active { background: #2563eb; color: white; border-color: #2563eb; }
+    .tab.sat { }
+    .tab.sat.active { background: #7c3aed; border-color: #7c3aed; }
 
     .day-panel { display: none; }
     .day-panel.active { display: block; }
@@ -106,17 +95,27 @@
       font-weight: 700; color: #1e3a5f; font-size: 0.95rem;
       padding-bottom: 0.6rem; margin-bottom: 0.8rem;
       border-bottom: 1.5px solid #f1f5f9;
+      display: flex; justify-content: space-between; align-items: center;
     }
+    .teacher-count { color: #94a3b8; font-size: 0.8rem; font-weight: 400; }
     .student-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
     .chip {
       padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.82rem;
+      background: #eff6ff; color: #1e40af;
     }
-    .chip-ok   { background: #eff6ff; color: #1e40af; }
-    .chip-warn { background: #fff7ed; color: #c2410c; }
     .chip .code { color: #93c5fd; font-size: 0.75rem; margin-left: 0.3rem; }
-    .chip-warn .code { color: #fca5a5; }
-
     .empty-panel { color: #94a3b8; text-align: center; padding: 2rem; font-size: 0.88rem; }
+
+    /* 통계 */
+    .stats-row {
+      display: flex; gap: 1rem; margin-bottom: 1.2rem; flex-wrap: wrap;
+    }
+    .stat {
+      background: white; border-radius: 10px; padding: 0.8rem 1.2rem;
+      font-size: 0.85rem; color: #475569;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .stat strong { color: #2563eb; font-size: 1.1rem; margin-right: 0.3rem; }
   </style>
 </head>
 <body>
@@ -127,53 +126,28 @@
 </div>
 
 <div class="container">
-  <div id="status" class="status"></div>
-
-  <!-- 2개 파일 업로드 -->
-  <div class="upload-grid">
-
-    <!-- 파일 1: 학생 명단 -->
-    <div class="upload-card">
-      <h3>① 학생 명단 파일</h3>
-      <p class="desc">
-        학생 이름과 4자리 고유번호가 있는 엑셀 파일<br>
-        (예: A열 = 이름, B열 = 코드)
-      </p>
-      <div class="drop-zone" id="dz1" onclick="document.getElementById('f1').click()">
-        <div class="dz-icon">📋</div>
-        <div class="dz-text" id="dz1txt">클릭 또는 드래그해서 업로드</div>
-        <input type="file" id="f1" accept=".xls,.xlsx">
-      </div>
-    </div>
-
-    <!-- 파일 2: 시간표 -->
-    <div class="upload-card">
-      <h3>② 시간표 파일</h3>
-      <p class="desc">
-        요일별 선생님-학생 배정이 있는 엑셀 파일<br>
-        (PDF와 동일한 표 구조)
-      </p>
-      <div class="drop-zone" id="dz2" onclick="document.getElementById('f2').click()">
-        <div class="dz-icon">📅</div>
-        <div class="dz-text" id="dz2txt">클릭 또는 드래그해서 업로드</div>
-        <input type="file" id="f2" accept=".xls,.xlsx">
-      </div>
-    </div>
-
+  <div class="guide">
+    <strong>📌 사용 방법</strong>
+    코드가 포함된 시간표 파일 (예: <b>출석명단_5월_정리.xlsx</b>) 하나만 올리세요.<br>
+    학생 이름 옆에 <b>이름 (4자리코드)</b> 형식이 있으면 자동으로 인식합니다.<br>
+    월요일 ~ 토요일 수업을 지원합니다.
   </div>
 
-  <!-- 결과 -->
+  <div id="status" class="status"></div>
+
+  <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="dz-icon">📊</div>
+    <div class="dz-title" id="dzTitle">시간표 파일을 여기에 드래그 하세요</div>
+    <div class="dz-sub" id="dzSub">또는 클릭해서 파일 선택 (.xlsx, .xls)</div>
+    <input type="file" id="fileInput" accept=".xls,.xlsx">
+  </div>
+
   <div id="resultSection">
+    <div class="stats-row" id="statsRow"></div>
     <div class="result-header">
       <h2 id="resultTitle">파싱 결과 확인</h2>
-      <button class="btn btn-save" id="saveBtn" onclick="saveToFirebase()">Firebase에 저장</button>
+      <button class="btn-save" id="saveBtn" onclick="saveToFirebase()">Firebase에 저장</button>
     </div>
-
-    <div class="warn-list" id="warnList">
-      <h4>⚠️ 코드를 찾지 못한 학생 (학생 명단 파일에 없음)</h4>
-      <ul id="warnItems"></ul>
-    </div>
-
     <div class="day-tabs" id="dayTabs"></div>
     <div id="dayPanels"></div>
   </div>
@@ -182,126 +156,105 @@
 <script>
 if (!sessionStorage.getItem('thinkup_admin')) window.location.href = './index.html';
 
-const DAYS_KR  = ['월', '화', '수', '목', '금'];
-const DAY_CODES = { '월': 'mon', '화': 'tue', '수': 'wed', '목': 'thu', '금': 'fri' };
-const DAY_LABEL = { mon: '월요일', tue: '화요일', wed: '수요일', thu: '목요일', fri: '금요일' };
+const DAYS_KR  = ['월', '화', '수', '목', '금', '토']; // 일 제외
+const DAY_CODES = { '월': 'mon', '화': 'tue', '수': 'wed', '목': 'thu', '금': 'fri', '토': 'sat' };
+const DAY_LABEL = { mon: '월요일', tue: '화요일', wed: '수요일', thu: '목요일', fri: '금요일', sat: '토요일' };
+const DAY_ORDER = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 
-let studentMap  = null; // name -> code
+const STUDENT_RE = /^(.+?)\s*\((\d{4})\)$/;
+
 let parsedSchedule = null;
+let parsedStudents = {};  // code -> name
 
-// ─── 드래그 앤 드롭 ───
-function setupDrop(dzId, inputId, txtId, onFile) {
-  const dz = document.getElementById(dzId);
-  const inp = document.getElementById(inputId);
-  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('dragover'); });
-  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
-  dz.addEventListener('drop', e => {
-    e.preventDefault(); dz.classList.remove('dragover');
-    const f = e.dataTransfer.files[0];
-    if (f) onFile(f, dz, txtId);
-  });
-  inp.addEventListener('change', e => {
-    if (e.target.files[0]) onFile(e.target.files[0], dz, txtId);
-  });
-}
+// ── 드래그 앤 드롭 ──
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if (f) handleFile(f);
+  else showStatus('파일을 인식할 수 없습니다.', 'error');
+});
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
 
-setupDrop('dz1', 'f1', 'dz1txt', handleStudentFile);
-setupDrop('dz2', 'f2', 'dz2txt', handleTimetableFile);
-
-// ─── 파일 1: 학생 명단 ───
-async function handleStudentFile(file, dz, txtId) {
+async function handleFile(file) {
+  showStatus('파일 분석 중...', 'loading');
+  dropZone.classList.remove('done');
   try {
     const wb = await readXLS(file);
-    studentMap = parseStudentList(wb);
-    const count = Object.keys(studentMap).length;
-    dz.classList.add('done');
-    document.getElementById(txtId).textContent = `✓ ${file.name} (${count}명 로드됨)`;
-    tryMerge();
-  } catch (err) {
-    showStatus('학생 명단 파일 오류: ' + err.message, 'error');
-  }
-}
-
-// ─── 파일 2: 시간표 ───
-async function handleTimetableFile(file, dz, txtId) {
-  try {
-    const wb = await readXLS(file);
-    window._timetableWB = wb;
-    dz.classList.add('done');
-    document.getElementById(txtId).textContent = `✓ ${file.name} (로드됨)`;
-    tryMerge();
-  } catch (err) {
-    showStatus('시간표 파일 오류: ' + err.message, 'error');
-  }
-}
-
-// ─── 두 파일 모두 준비되면 합치기 ───
-function tryMerge() {
-  if (!studentMap || !window._timetableWB) return;
-  showStatus('분석 중...', 'loading');
-  try {
-    parsedSchedule = parseTimetable(window._timetableWB, studentMap);
-    renderResult(parsedSchedule);
+    const result = parseWorkbook(wb);
+    parsedSchedule = result.schedule;
+    parsedStudents = result.students;
+    renderResult();
     document.getElementById('resultSection').style.display = 'block';
-    showStatus('분석 완료! 내용을 확인 후 저장하세요.', 'success');
+    dropZone.classList.add('done');
+    document.getElementById('dzTitle').textContent = '✓ ' + file.name;
+    document.getElementById('dzSub').textContent = '파일이 성공적으로 로드되었습니다.';
+    showStatus('분석 완료! 내용을 확인한 후 저장하세요.', 'success');
   } catch (err) {
-    showStatus('시간표 분석 실패: ' + err.message, 'error');
+    showStatus('오류: ' + err.message, 'error');
     console.error(err);
   }
 }
 
-// ─── XLS 읽기 ───
+// ── XLS 읽기 ──
 function readXLS(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = e => {
-      try {
-        const wb = XLSX.read(e.target.result, { type: 'array' });
-        resolve(wb);
-      } catch (err) { reject(err); }
+      try { resolve(XLSX.read(e.target.result, { type: 'array' })); }
+      catch (err) { reject(err); }
     };
-    reader.onerror = () => reject(new Error('파일을 읽을 수 없습니다.'));
+    reader.onerror = () => reject(new Error('파일을 열 수 없습니다.'));
     reader.readAsArrayBuffer(file);
   });
 }
 
-// ─── 학생 명단 파싱 ───
-// A열: 이름, B열: 코드 (헤더 행 자동 건너뜀)
-function parseStudentList(wb) {
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-  const map = {};
-  rows.forEach(row => {
-    const name = String(row[0] || '').trim();
-    const code = String(row[1] || '').trim().replace(/\D/g, '').padStart(4, '0');
-    if (name && /^\d{4}$/.test(code) && name !== '이름' && name !== '학생') {
-      map[name] = code;
+// ── 워크북 전체 파싱 ──
+function parseWorkbook(wb) {
+  // 시트 중 시간표가 있는 시트 자동 탐지 (요일 셀이 2개 이상)
+  let bestSheet = null;
+  let bestScore = 0;
+
+  for (const name of wb.SheetNames) {
+    const sh = wb.Sheets[name];
+    const range = XLSX.utils.decode_range(sh['!ref'] || 'A1');
+    let score = 0;
+    for (let r = range.s.r; r <= Math.min(range.e.r, 10); r++) {
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const cell = sh[XLSX.utils.encode_cell({ r, c })];
+        if (cell && DAYS_KR.includes(String(cell.v).trim())) score++;
+      }
     }
-  });
-  return map;
+    if (score > bestScore) { bestScore = score; bestSheet = sh; }
+  }
+
+  if (!bestSheet || bestScore < 2) throw new Error('시간표 시트를 찾을 수 없습니다. 요일(월/화/수/목/금/토) 셀이 있는지 확인하세요.');
+
+  return parseTimetableSheet(bestSheet);
 }
 
-// ─── 시간표 파싱 ───
-function parseTimetable(wb, studentMap) {
-  const sheet = wb.Sheets[wb.SheetNames[0]];
+// ── 시트 파싱 ──
+function parseTimetableSheet(sheet) {
   const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+  const maxR = range.e.r + 1;
+  const maxC = range.e.c + 1;
 
   // 그리드 생성
-  const rows = range.e.r + 1;
-  const cols = range.e.c + 1;
-  const grid = Array.from({ length: rows }, () => Array(cols).fill(''));
-
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const addr = XLSX.utils.encode_cell({ r, c });
-      const cell = sheet[addr];
-      if (cell && cell.v !== undefined && cell.v !== null) {
+  const grid = Array.from({ length: maxR }, () => Array(maxC).fill(''));
+  for (let r = 0; r < maxR; r++) {
+    for (let c = 0; c < maxC; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({ r, c })];
+      if (cell && cell.v !== null && cell.v !== undefined) {
         grid[r][c] = String(cell.v).trim();
       }
     }
   }
 
-  // 병합 셀 처리 (병합된 셀의 값을 모든 셀에 채움)
+  // 병합 셀 처리
   (sheet['!merges'] || []).forEach(m => {
     const val = grid[m.s.r][m.s.c];
     for (let r = m.s.r; r <= m.e.r; r++) {
@@ -311,39 +264,47 @@ function parseTimetable(wb, studentMap) {
     }
   });
 
-  // 요일 헤더 행 찾기
+  // 요일 헤더 행 탐색 (처음 10행 내에서)
   let dayRowIdx = -1;
   const dayColMap = {}; // col -> dayKr
-  for (let r = 0; r < grid.length; r++) {
-    const row = grid[r];
-    const found = row.filter(cell => DAYS_KR.includes(cell));
-    if (found.length >= 1) {
+  for (let r = 0; r < Math.min(grid.length, 10); r++) {
+    const dayCount = grid[r].filter(v => DAYS_KR.includes(v)).length;
+    if (dayCount >= 2) {
       dayRowIdx = r;
-      row.forEach((cell, c) => {
-        if (DAYS_KR.includes(cell)) dayColMap[c] = cell;
-      });
+      grid[r].forEach((v, c) => { if (DAYS_KR.includes(v)) dayColMap[c] = v; });
       break;
     }
   }
-  if (dayRowIdx === -1) throw new Error('요일 정보를 찾을 수 없습니다. (월/화/수/목/금 셀 필요)');
+  if (dayRowIdx === -1) throw new Error('요일 정보를 찾을 수 없습니다.');
 
-  // 요일별 컬럼 범위 계산
+  // 각 요일의 컬럼 범위
   const dayEntries = Object.entries(dayColMap)
     .map(([c, d]) => ({ col: Number(c), day: d }))
     .sort((a, b) => a.col - b.col);
 
-  const dayRanges = dayEntries.map((de, i) => ({
-    day: de.day,
-    dayCode: DAY_CODES[de.day],
-    startCol: de.col,
-    endCol: i < dayEntries.length - 1 ? dayEntries[i + 1].col - 1 : cols - 1
-  }));
+  // 일요일 제외
+  const filteredEntries = dayEntries.filter(de => de.day !== '일');
+
+  const dayRanges = filteredEntries.map((de, i) => {
+    // 다음 요일 시작 전까지 (단, 일요일은 건너뜀)
+    let nextCol = maxC;
+    for (let j = i + 1; j < dayEntries.length; j++) {
+      if (dayEntries[j].day !== '일') { nextCol = dayEntries[j].col; break; }
+      // 일요일이면 그 다음 찾기
+    }
+    return {
+      day: de.day,
+      dayCode: DAY_CODES[de.day],
+      startCol: de.col,
+      endCol: nextCol - 1
+    };
+  });
 
   // 스케줄 초기화
   const schedule = {};
   dayRanges.forEach(dr => { schedule[dr.dayCode] = { day: dr.day, teachers: [] }; });
 
-  // 선생님 행 (요일 헤더 바로 다음 행)
+  // 선생님 행 (요일 헤더 바로 다음)
   const teacherRow = grid[dayRowIdx + 1] || [];
   teacherRow.forEach((cell, c) => {
     if (!cell || DAYS_KR.includes(cell)) return;
@@ -353,17 +314,22 @@ function parseTimetable(wb, studentMap) {
     }
   });
 
-  // 학생 이름 찾기 (요일+선생님 행 이후 모든 행)
+  // 학생 이름 파싱 (이름(코드) 형식)
+  const students = {}; // code -> name
   const GRADE_RE = /^[초중고]\s*\d+/;
-  const CODE_RE  = /\(\d{4}\)/g;
 
   for (let r = dayRowIdx + 2; r < grid.length; r++) {
     grid[r].forEach((cell, c) => {
       if (!cell) return;
-      // 학년 라벨, 요일 문자 제거
-      let name = cell.replace(CODE_RE, '').trim();
-      if (!name || GRADE_RE.test(name) || DAYS_KR.includes(name)) return;
+      const m = cell.match(STUDENT_RE);
+      const name = m ? m[1].trim() : cell.trim();
+      const code = m ? m[2] : null;
 
+      // 학년 라벨, 요일, 숫자만 있는 셀 제외
+      if (GRADE_RE.test(name) || DAYS_KR.includes(name) || /^\d+$/.test(name)) return;
+      if (name.length < 2) return;
+
+      // 해당 요일 범위 찾기
       const dr = dayRanges.find(dr => c >= dr.startCol && c <= dr.endCol);
       if (!dr) return;
 
@@ -378,56 +344,57 @@ function parseTimetable(wb, studentMap) {
         if (d < minDist) { minDist = d; nearest = t; }
       });
 
-      const code = studentMap[name] || null;
       // 중복 방지
       if (!nearest.students.some(s => s.name === name)) {
         nearest.students.push({ name, code });
+        if (code) students[code] = name;
       }
     });
   }
 
-  // col 정리
+  // col 속성 제거
   Object.values(schedule).forEach(day => {
     day.teachers.forEach(t => delete t.col);
   });
 
-  return schedule;
+  return { schedule, students };
 }
 
-// ─── 결과 렌더링 ───
-function renderResult(schedule) {
+// ── 결과 렌더링 ──
+function renderResult() {
   const tabs   = document.getElementById('dayTabs');
   const panels = document.getElementById('dayPanels');
   tabs.innerHTML = ''; panels.innerHTML = '';
 
-  // 코드 없는 학생 경고
-  const missing = [];
-  Object.values(schedule).forEach(day => {
+  // 통계
+  const teacherNames = new Set();
+  let studentCount = 0;
+  let noCodeCount = 0;
+  Object.values(parsedSchedule).forEach(day => {
     day.teachers.forEach(t => {
+      teacherNames.add(t.name);
       t.students.forEach(s => {
-        if (!s.code && !missing.includes(s.name)) missing.push(s.name);
+        studentCount++;
+        if (!s.code) noCodeCount++;
       });
     });
   });
-  const warnList = document.getElementById('warnList');
-  if (missing.length) {
-    warnList.style.display = 'block';
-    document.getElementById('warnItems').innerHTML = missing.map(n => `<li>${n}</li>`).join('');
-  } else {
-    warnList.style.display = 'none';
-  }
+  const totalStudents = Object.keys(parsedStudents).length;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat"><strong>${teacherNames.size}</strong>명의 선생님</div>
+    <div class="stat"><strong>${totalStudents}</strong>명의 학생 (코드 포함)</div>
+    ${noCodeCount ? `<div class="stat" style="color:#ef4444"><strong>${noCodeCount}</strong>개 항목 코드 없음</div>` : ''}
+  `;
+  document.getElementById('resultTitle').textContent = '파싱 결과 확인';
 
-  const ORDER = ['mon', 'tue', 'wed', 'thu', 'fri'];
   let first = true;
-
-  ORDER.forEach(dc => {
-    const data = schedule[dc];
+  DAY_ORDER.forEach(dc => {
+    const data = parsedSchedule[dc];
     if (!data) return;
     const hasData = data.teachers.some(t => t.students.length > 0);
 
-    // 탭
     const tab = document.createElement('button');
-    tab.className = 'tab' + (first ? ' active' : '');
+    tab.className = 'tab' + (dc === 'sat' ? ' sat' : '') + (first ? ' active' : '');
     tab.textContent = DAY_LABEL[dc];
     tab.onclick = () => {
       document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
@@ -437,7 +404,6 @@ function renderResult(schedule) {
     };
     tabs.appendChild(tab);
 
-    // 패널
     const panel = document.createElement('div');
     panel.className = 'day-panel' + (first ? ' active' : '');
     panel.id = 'panel-' + dc;
@@ -450,63 +416,53 @@ function renderResult(schedule) {
         const block = document.createElement('div');
         block.className = 'teacher-block';
         block.innerHTML = `
-          <div class="teacher-name">👨‍🏫 ${t.name} 선생님</div>
+          <div class="teacher-name">
+            👨‍🏫 ${t.name} 선생님
+            <span class="teacher-count">${t.students.length}명</span>
+          </div>
           <div class="student-chips">
-            ${t.students.map(s => s.code
-              ? `<span class="chip chip-ok">${s.name}<span class="code">(${s.code})</span></span>`
-              : `<span class="chip chip-warn">${s.name}<span class="code">코드없음</span></span>`
-            ).join('')}
+            ${t.students.map(s => `
+              <span class="chip">${s.name}${s.code ? `<span class="code">(${s.code})</span>` : '<span class="code" style="color:#fca5a5">코드없음</span>'}</span>
+            `).join('')}
           </div>
         `;
         panel.appendChild(block);
       });
     }
-
     panels.appendChild(panel);
     first = false;
   });
-
-  // 통계 업데이트
-  const totalStudents = Object.keys(studentMap).length;
-  const totalTeachers = new Set(
-    Object.values(schedule).flatMap(d => d.teachers.map(t => t.name))
-  ).size;
-  document.getElementById('resultTitle').textContent =
-    `파싱 결과 — 선생님 ${totalTeachers}명 / 학생 ${totalStudents}명`;
 }
 
-// ─── Firebase 저장 ───
+// ── Firebase 저장 ──
 async function saveToFirebase() {
-  if (!parsedSchedule || !studentMap) return;
+  if (!parsedSchedule) return;
   const btn = document.getElementById('saveBtn');
   btn.disabled = true; btn.textContent = '저장 중...';
   showStatus('Firebase에 저장 중...', 'loading');
-
   try {
     const batch = db.batch();
 
     // 스케줄 저장
     for (const [dayCode, data] of Object.entries(parsedSchedule)) {
-      const ref = db.collection('schedules').doc(dayCode);
-      // col 필드 없이 저장
       const clean = {
         day: data.day,
         teachers: data.teachers.map(t => ({
           name: t.name,
-          students: t.students.filter(s => s.code) // 코드 없는 학생 제외
-        }))
+          students: t.students.filter(s => s.code).map(s => ({ name: s.name, code: s.code }))
+        })).filter(t => t.students.length > 0)
       };
-      batch.set(ref, clean);
+      batch.set(db.collection('schedules').doc(dayCode), clean);
     }
 
-    // 학생 개별 저장 (code → name)
-    for (const [name, code] of Object.entries(studentMap)) {
-      const ref = db.collection('students').doc(code);
-      batch.set(ref, { name, code });
+    // 학생 개별 저장
+    for (const [code, name] of Object.entries(parsedStudents)) {
+      batch.set(db.collection('students').doc(code), { name, code });
     }
 
     await batch.commit();
-    showStatus(`저장 완료! 학생 ${Object.keys(studentMap).length}명이 등록되었습니다.`, 'success');
+    const cnt = Object.keys(parsedStudents).length;
+    showStatus(`저장 완료! 학생 ${cnt}명, 요일 ${Object.keys(parsedSchedule).length}개 등록되었습니다.`, 'success');
     btn.textContent = '저장 완료 ✓';
   } catch (err) {
     showStatus('저장 실패: ' + err.message, 'error');
