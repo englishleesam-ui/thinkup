@@ -100,10 +100,18 @@
     .teacher-count { color: #94a3b8; font-size: 0.8rem; font-weight: 400; }
     .student-chips { display: flex; flex-wrap: wrap; gap: 0.45rem; }
     .chip {
-      padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.82rem;
-      background: #eff6ff; color: #1e40af;
+      padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.83rem;
+      font-weight: 600;
     }
-    .chip .code { color: #93c5fd; font-size: 0.75rem; margin-left: 0.3rem; }
+    .chip-coded {
+      background: #dbeafe; color: #1e40af;
+    }
+    .chip-coded .code { color: #60a5fa; font-size: 0.74rem; margin-left: 0.3rem; font-weight: 400; }
+    .chip-nocode {
+      background: #f1f5f9; color: #94a3b8;
+      border: 1.5px dashed #cbd5e1;
+    }
+    .chip-nocode .code { color: #fca5a5; font-size: 0.74rem; margin-left: 0.3rem; }
     .empty-panel { color: #94a3b8; text-align: center; padding: 2rem; font-size: 0.88rem; }
 
     /* 통계 */
@@ -421,9 +429,10 @@ function renderResult() {
             <span class="teacher-count">${t.students.length}명</span>
           </div>
           <div class="student-chips">
-            ${t.students.map(s => `
-              <span class="chip">${s.name}${s.code ? `<span class="code">(${s.code})</span>` : '<span class="code" style="color:#fca5a5">코드없음</span>'}</span>
-            `).join('')}
+            ${t.students.map(s => s.code
+              ? `<span class="chip chip-coded">${s.name}<span class="code">(${s.code})</span></span>`
+              : `<span class="chip chip-nocode">${s.name}<span class="code">코드없음</span></span>`
+            ).join('')}
           </div>
         `;
         panel.appendChild(block);
