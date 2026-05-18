@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ThinkUp - 시간표 관리</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+      background: #f1f5f9; min-height: 100vh;
+    }
+    .topbar {
+      background: #1e3a5f; color: white;
+      padding: 1rem 1.5rem;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .topbar a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; }
+    .topbar h1 { font-size: 1.1rem; flex: 1; }
+
+    .main { max-width: 800px; margin: 0 auto; padding: 1.5rem 1rem 100px; }
+
+    .day-tabs {
+      display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;
+    }
+    .day-tab {
+      padding: 0.55rem 1.2rem; border-radius: 20px;
+      border: 2px solid #e2e8f0; background: white;
+      cursor: pointer; font-size: 0.95rem; font-weight: 700;
+      color: #64748b; transition: all 0.15s;
+    }
+    .day-tab.active { background: #2563eb; border-color: #2563eb; color: white; }
+    .day-tab:hover:not(.active) { border-color: #2563eb; color: #2563eb; }
+    .day-tab .cnt {
+      font-size: 0.72rem; font-weight: 500;
+      opacity: 0.7; margin-left: 3px;
+    }
+
+    .section-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem;
+    }
+    .section-title { font-size: 0.95rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .teacher-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
+    .teacher-chip {
+      padding: 0.5rem 1rem; border-radius: 20px;
+      background: white; border: 2px solid #e2e8f0;
+      cursor: pointer; font-size: 0.9rem; font-weight: 700;
+      color: #475569; transition: all 0.15s;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .teacher-chip.active { background: #1e3a5f; border-color: #1e3a5f; color: white; }
+    .teacher-chip:hover:not(.active) { border-color: #1e3a5f; }
+    .chip-del {
+      font-size: 0.7rem; width: 18px; height: 18px; border-radius: 50%;
+      background: rgba(0,0,0,0.12); display: inline-flex;
+      align-items: center; justify-content: center; cursor: pointer;
+    }
+    .teacher-chip.active .chip-del { background: rgba(255,255,255,0.25); }
+    .chip-del:hover { background: #ef4444 !important; color: white; }
+
+    .btn-add-outline {
+      padding: 0.5rem 1rem; border-radius: 20px;
+      background: transparent; border: 2px dashed #93c5fd;
+      cursor: pointer; font-size: 0.9rem; color: #2563eb; font-weight: 600;
+      transition: all 0.15s;
+    }
+    .btn-add-outline:hover { background: #eff6ff; }
+
+    .student-panel {
+      background: white; border-radius: 16px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden;
+    }
+    .student-panel-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1.2rem 1.5rem; border-bottom: 1px solid #f1f5f9;
+    }
+    .student-panel-title { font-size: 1rem; font-weight: 700; color: #1e3a5f; }
+    .student-count { font-size: 0.82rem; color: #94a3b8; margin-left: 0.5rem; }
+
+    .student-list { padding: 0.8rem 1rem; }
+    .student-row {
+      display: flex; align-items: center; gap: 0.7rem;
+      padding: 0.55rem 0.7rem; border-radius: 10px;
+      transition: background 0.1s; position: relative;
+    }
+    .student-row:hover { background: #f8fafc; }
+
+    .snum { font-size: 0.78rem; color: #94a3b8; width: 22px; text-align: right; flex-shrink: 0; }
+
+    .sname-wrap { flex: 1; }
+    .sname-text {
+      font-size: 0.95rem; font-weight: 600; color: #1e293b;
+      padding: 0.2rem 0.5rem; border-radius: 6px; cursor: pointer; display: inline-block;
+    }
+    .sname-text:hover { background: #e2e8f0; }
+    .sname-input {
+      font-size: 0.95rem; font-weight: 600; color: #1e293b;
+      border: 1.5px solid #2563eb; border-radius: 6px;
+      padding: 0.2rem 0.5rem; outline: none; width: 120px;
+    }
+
+    .code-badge {
+      padding: 0.25rem 0.75rem; border-radius: 20px;
+      font-size: 0.8rem; font-weight: 700; cursor: pointer;
+      min-width: 68px; text-align: center; flex-shrink: 0;
+    }
+    .code-has { background: #dbeafe; color: #1d4ed8; }
+    .code-none { background: #f1f5f9; color: #94a3b8; border: 1.5px dashed #cbd5e1; }
+    .code-input {
+      border: 1.5px solid #2563eb; border-radius: 20px;
+      padding: 0.2rem 0.5rem; text-align: center;
+      font-size: 0.8rem; font-weight: 700; color: #1d4ed8;
+      width: 68px; outline: none;
+    }
+
+    .del-student {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #fee2e2; color: #ef4444;
+      border: none; cursor: pointer; font-size: 0.85rem;
+      opacity: 0; transition: opacity 0.15s; flex-shrink: 0;
+    }
+    .student-row:hover .del-student { opacity: 1; }
+
+    .add-student-row {
+      padding: 0.8rem 1rem; display: flex; gap: 0.5rem;
+      border-top: 1px solid #f1f5f9; align-items: center;
+    }
+    .add-name-input {
+      flex: 1; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 0.5rem 0.8rem; font-size: 0.9rem; outline: none;
+      transition: border-color 0.15s;
+    }
+    .add-name-input:focus { border-color: #2563eb; }
+    .add-code-input {
+      width: 80px; border: 1.5px solid #e2e8f0; border-radius: 10px;
+      padding: 0.5rem 0.5rem; font-size: 0.9rem; outline: none;
+      text-align: center; transition: border-color 0.15s;
+    }
+    .add-code-input:focus { border-color: #2563eb; }
+    .btn-add-student {
+      background: #2563eb; color: white; border: none;
+      border-radius: 10px; padding: 0.5rem 1rem;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+    }
+    .btn-add-student:hover { background: #1d4ed8; }
+
+    .empty-state { padding: 2.5rem; text-align: center; color: #94a3b8; font-size: 0.9rem; }
+    .no-teacher-msg {
+      background: white; border-radius: 16px; padding: 2.5rem;
+      text-align: center; color: #94a3b8;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+
+    .save-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; border-top: 1px solid #e2e8f0;
+      padding: 0.8rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem;
+    }
+    .save-status { font-size: 0.85rem; color: #64748b; }
+    .btn-save {
+      background: #2563eb; color: white;
+      border: none; border-radius: 12px;
+      padding: 0.8rem 2.5rem; font-size: 1rem;
+      font-weight: 700; cursor: pointer;
+    }
+    .btn-save:hover { background: #1d4ed8; }
+    .btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="./index.html">← 대시보드</a>
+  <h1>시간표 관리</h1>
+</div>
+
+<div class="main">
+  <div class="day-tabs" id="dayTabs"></div>
+
+  <div class="section-header">
+    <span class="section-title" id="teacherSectionTitle">선생님</span>
+  </div>
+  <div class="teacher-grid" id="teacherGrid"></div>
+
+  <div id="studentArea"></div>
+</div>
+
+<div class="save-bar">
+  <span class="save-status" id="saveStatus">데이터 불러오는 중...</span>
+  <button class="btn-save" id="saveBtn" onclick="saveAll()">저장</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="../firebase-config.js"></script>
+<script>
+  if (!sessionStorage.getItem('thinkup_admin')) location.href = './index.html';
+
+  const DAYS = [
+    {code:'mon', label:'월'},
+    {code:'tue', label:'화'},
+    {code:'wed', label:'수'},
+    {code:'thu', label:'목'},
+    {code:'fri', label:'금'},
+    {code:'sat', label:'토'},
+  ];
+
+  let schedule = {};
+  let currentDay = 'mon';
+  let currentTeacherIdx = null;
+  let hasChanges = false;
+
+  DAYS.forEach(d => { schedule[d.code] = { day: d.label, teachers: [] }; });
+
+  async function loadSchedule() {
+    try {
+      for (const d of DAYS) {
+        const doc = await db.collection('schedules').doc(d.code).get();
+        if (doc.exists) {
+          const data = doc.data();
+          if (!data.teachers) data.teachers = [];
+          schedule[d.code] = data;
+        }
+      }
+      setStatus('최신 데이터 로드 완료', '#10b981');
+    } catch(e) {
+      setStatus('로드 오류: ' + e.message, '#ef4444');
+    }
+    renderAll();
+  }
+
+  function setStatus(msg, color) {
+    const el = document.getElementById('saveStatus');
+    el.textContent = msg;
+    el.style.color = color || '#64748b';
+  }
+
+  function markChanged() {
+    hasChanges = true;
+    setStatus('저장하지 않은 변경사항이 있습니다', '#f59e0b');
+  }
+
+  function renderAll() {
+    renderDayTabs();
+    renderTeachers();
+  }
+
+  function renderDayTabs() {
+    document.getElementById('dayTabs').innerHTML = DAYS.map(d => {
+      const cnt = (schedule[d.code]?.teachers || []).length;
+      return `<button class="day-tab ${d.code === currentDay ? 'active' : ''}" onclick="selectDay('${d.code}')">
+        ${d.label}요일<span class="cnt">${cnt > 0 ? cnt+'명' : ''}</span>
+      </button>`;
+    }).join('');
+  }
+
+  function selectDay(code) {
+    currentDay = code;
+    currentTeacherIdx = null;
+    renderAll();
+  }
+
+  function renderTeachers() {
+    const teachers = schedule[currentDay]?.teachers || [];
+    const dayLabel = DAYS.find(d => d.code === currentDay).label;
+    document.getElementById('teacherSectionTitle').textContent = `${dayLabel}요일 선생님`;
+
+    const grid = document.getElementById('teacherGrid');
+    grid.innerHTML = teachers.map((t, i) => `
+      <div class="teacher-chip ${currentTeacherIdx === i ? 'active' : ''}" onclick="selectTeacher(${i})">
+        ${t.name}
+        <span class="chip-del" onclick="event.stopPropagation();deleteTeacher(${i})" title="삭제">✕</span>
+      </div>
+    `).join('') + `<button class="btn-add-outline" onclick="addTeacher()">+ 선생님 추가</button>`;
+
+    renderStudentPanel();
+  }
+
+  function selectTeacher(idx) {
+    currentTeacherIdx = idx;
+    renderTeachers();
+  }
+
+  function renderStudentPanel() {
+    const area = document.getElementById('studentArea');
+    if (currentTeacherIdx === null) {
+      area.innerHTML = `<div class="no-teacher-msg">위에서 선생님을 선택하면 학생 목록을 관리할 수 있습니다</div>`;
+      return;
+    }
+    const teacher = schedule[currentDay].teachers[currentTeacherIdx];
+    if (!teacher) return;
+    const dayLabel = DAYS.find(d => d.code === currentDay).label;
+
+    const rows = teacher.students.length === 0
+      ? `<div class="empty-state">학생이 없습니다. 아래에서 추가하세요.</div>`
+      : teacher.students.map((s, i) => `
+          <div class="student-row">
+            <span class="snum">${i+1}</span>
+            <div class="sname-wrap">
+              <span class="sname-text" ondblclick="editName(${i})" title="더블클릭으로 이름 수정" id="sname_${i}">${s.name}</span>
+            </div>
+            <div class="code-badge ${s.code ? 'code-has' : 'code-none'}"
+                 onclick="editCode(${i})" title="클릭으로 코드 수정" id="scode_${i}">
+              ${s.code || '코드없음'}
+            </div>
+            <button class="del-student" onclick="deleteStudent(${i})" title="삭제">✕</button>
+          </div>
+        `).join('');
+
+    area.innerHTML = `
+      <div class="student-panel">
+        <div class="student-panel-header">
+          <div>
+            <span class="student-panel-title">${dayLabel}요일 · ${teacher.name} 선생님</span>
+            <span class="student-count">${teacher.students.length}명</span>
+          </div>
+        </div>
+        <div class="student-list">${rows}</div>
+        <div class="add-student-row">
+          <input class="add-name-input" id="addNameInput" placeholder="학생 이름" onkeydown="if(event.key==='Enter')document.getElementById('addCodeInput').focus()">
+          <input class="add-code-input" id="addCodeInput" placeholder="코드(선택)" maxlength="4" onkeydown="if(event.key==='Enter')confirmAddStudent()">
+          <button class="btn-add-student" onclick="confirmAddStudent()">+ 추가</button>
+        </div>
+      </div>`;
+  }
+
+  function addTeacher() {
+    const name = prompt('선생님 이름을 입력하세요:');
+    if (!name || !name.trim()) return;
+    schedule[currentDay].teachers.push({ name: name.trim(), students: [] });
+    currentTeacherIdx = schedule[currentDay].teachers.length - 1;
+    markChanged();
+    renderAll();
+  }
+
+  function deleteTeacher(idx) {
+    const t = schedule[currentDay].teachers[idx];
+    if (!confirm(`"${t.name}" 선생님을 삭제할까요? 학생 ${t.students.length}명도 함께 삭제됩니다.`)) return;
+    schedule[currentDay].teachers.splice(idx, 1);
+    if (currentTeacherIdx === idx) currentTeacherIdx = null;
+    else if (currentTeacherIdx > idx) currentTeacherIdx--;
+    markChanged();
+    renderAll();
+  }
+
+  function confirmAddStudent() {
+    const nameEl = document.getElementById('addNameInput');
+    const codeEl = document.getElementById('addCodeInput');
+    const name = nameEl.value.trim();
+    if (!name) { nameEl.focus(); return; }
+    const code = codeEl.value.trim();
+    schedule[currentDay].teachers[currentTeacherIdx].students.push({ name, code });
+    nameEl.value = '';
+    codeEl.value = '';
+    nameEl.focus();
+    markChanged();
+    renderStudentPanel();
+    renderDayTabs();
+    renderTeachers();
+  }
+
+  function deleteStudent(idx) {
+    schedule[currentDay].teachers[currentTeacherIdx].students.splice(idx, 1);
+    markChanged();
+    renderStudentPanel();
+    renderTeachers();
+  }
+
+  function editName(idx) {
+    const s = schedule[currentDay].teachers[currentTeacherIdx].students[idx];
+    const el = document.getElementById('sname_' + idx);
+    el.outerHTML = `<input class="sname-input" id="sname_${idx}" type="text" value="${s.name}"
+      onblur="saveName(${idx},this.value)"
+      onkeydown="if(event.key==='Enter')this.blur()"
+      autofocus>`;
+    setTimeout(() => {
+      const inp = document.getElementById('sname_' + idx);
+      if (inp) { inp.focus(); inp.select(); }
+    }, 0);
+  }
+
+  function saveName(idx, value) {
+    if (value.trim()) {
+      schedule[currentDay].teachers[currentTeacherIdx].students[idx].name = value.trim();
+      markChanged();
+    }
+    renderStudentPanel();
+  }
+
+  function editCode(idx) {
+    const s = schedule[currentDay].teachers[currentTeacherIdx].students[idx];
+    const el = document.getElementById('scode_' + idx);
+    el.outerHTML = `<input class="code-input" id="scode_${idx}" type="text"
+      value="${s.code || ''}" placeholder="4자리" maxlength="4"
+      onblur="saveCode(${idx},this.value)"
+      onkeydown="if(event.key==='Enter')this.blur()"
+      autofocus>`;
+    setTimeout(() => {
+      const inp = document.getElementById('scode_' + idx);
+      if (inp) { inp.focus(); inp.select(); }
+    }, 0);
+  }
+
+  function saveCode(idx, value) {
+    schedule[currentDay].teachers[currentTeacherIdx].students[idx].code = value.trim();
+    markChanged();
+    renderStudentPanel();
+  }
+
+  async function saveAll() {
+    const btn = document.getElementById('saveBtn');
+    btn.textContent = '저장 중...';
+    btn.disabled = true;
+    try {
+      const batch = db.batch();
+
+      for (const d of DAYS) {
+        const ref = db.collection('schedules').doc(d.code);
+        batch.set(ref, schedule[d.code]);
+      }
+
+      // collect all coded students (deduplicate by code, last write wins)
+      const allStudents = {};
+      for (const d of DAYS) {
+        for (const t of (schedule[d.code]?.teachers || [])) {
+          for (const s of (t.students || [])) {
+            if (s.code) allStudents[s.code] = { name: s.name, code: s.code };
+          }
+        }
+      }
+      for (const [code, student] of Object.entries(allStudents)) {
+        batch.set(db.collection('students').doc(code), student);
+      }
+
+      await batch.commit();
+      hasChanges = false;
+      const codedCount = Object.keys(allStudents).length;
+      setStatus(`✓ 저장 완료 — 코드 부여 학생 ${codedCount}명`, '#10b981');
+    } catch(e) {
+      setStatus('저장 오류: ' + e.message, '#ef4444');
+    }
+    btn.textContent = '저장';
+    btn.disabled = false;
+  }
+
+  loadSchedule();
+</script>
+</body>
+</html>
