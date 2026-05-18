@@ -3,641 +3,845 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ThinkUp - 시간표 관리</title>
+  <title>ThinkUp - 시간표 작성</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-      background: #f1f5f9; min-height: 100vh;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif; background: #f0f4f8; min-height: 100vh; color: #1a202c; }
+
+    /* ── LOGIN ── */
+    #loginScreen {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999; padding: 40px 20px;
     }
+    #loginScreen.hidden { display: none; }
+    .login-card {
+      background: white; border-radius: 20px;
+      padding: 40px 36px; width: 340px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+    }
+    .card-logo { font-size: 2.4rem; text-align: center; margin-bottom: 6px; }
+    .card-title { font-size: 1.3rem; font-weight: 800; color: #1e3a5f; text-align: center; margin-bottom: 4px; }
+    .card-sub { font-size: 0.78rem; color: #718096; text-align: center; margin-bottom: 28px; }
+    .login-field { margin-bottom: 16px; }
+    .login-field label { display: block; font-size: 0.78rem; font-weight: 700; color: #4a5568; margin-bottom: 6px; }
+    .login-field input {
+      width: 100%; padding: 12px 14px;
+      border: 2px solid #e2e8f0; border-radius: 10px;
+      font-size: 1rem; outline: none; text-align: center;
+      letter-spacing: 0.3em; font-weight: 700;
+      transition: border-color 0.2s;
+    }
+    .login-field input:focus { border-color: #3b82f6; }
+    .login-error { color: #e53e3e; font-size: 0.78rem; font-weight: 600; min-height: 18px; margin-bottom: 8px; text-align: center; }
+    .btn-login-full {
+      width: 100%; padding: 12px;
+      background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+      color: white; border: none; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-login-full:hover { opacity: 0.88; }
+    .subject-hints { margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .hint-chip {
+      padding: 5px 8px; border-radius: 8px; font-size: 0.73rem;
+      font-weight: 700; text-align: center; color: white;
+    }
+    .admin-link { text-align: center; margin-top: 16px; }
+    .admin-link a { font-size: 0.75rem; color: #94a3b8; text-decoration: none; }
+    .admin-link a:hover { color: #64748b; }
+
+    /* ── APP ── */
+    #app { display: none; }
+    #app.visible { display: block; }
+
     .topbar {
-      background: #1e3a5f; color: white;
-      padding: 1rem 1.5rem;
-      display: flex; align-items: center; gap: 1rem;
+      background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      padding: 13px 20px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      flex-wrap: wrap;
     }
-    .topbar a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 0.9rem; }
-    .topbar h1 { font-size: 1.1rem; flex: 1; }
-    .btn-print-top {
-      background: rgba(255,255,255,0.15); color: white;
-      border: 1px solid rgba(255,255,255,0.3); border-radius: 8px;
-      padding: 0.4rem 1rem; font-size: 0.85rem; cursor: pointer; font-weight: 600;
+    .topbar-left h1 { font-size: 1.1rem; font-weight: 800; color: #1e3a5f; }
+    .topbar-left .tb-sub { font-size: 0.74rem; color: #718096; margin-top: 2px; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .subject-badge {
+      padding: 6px 16px; border-radius: 999px;
+      font-size: 0.82rem; font-weight: 800; color: white;
     }
-    .btn-print-top:hover { background: rgba(255,255,255,0.25); }
+    .btn-tb {
+      padding: 7px 14px; border-radius: 8px;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      border: 2px solid #e2e8f0; background: white; color: #4a5568;
+      transition: all 0.15s;
+    }
+    .btn-tb:hover { background: #f0f4f8; }
+    .btn-tb.primary { background: #2563eb; border-color: #2563eb; color: white; }
+    .btn-tb.primary:hover { background: #1d4ed8; }
+    .btn-tb.danger:hover { background: #fee2e2; border-color: #fca5a5; color: #c53030; }
 
-    .main { max-width: 800px; margin: 0 auto; padding: 1.5rem 1rem 100px; }
+    /* ── MAIN CONTENT ── */
+    .main-wrap { padding: 18px 16px 40px; }
 
-    .day-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-    .day-tab {
-      padding: 0.55rem 1.2rem; border-radius: 20px;
-      border: 2px solid #e2e8f0; background: white;
-      cursor: pointer; font-size: 0.95rem; font-weight: 700;
-      color: #64748b; transition: all 0.15s;
+    /* ── GRID TABLE ── */
+    .table-scroll { overflow-x: auto; }
+    table.tt {
+      width: 100%; border-collapse: collapse;
+      background: white; border-radius: 14px;
+      overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      min-width: 720px;
     }
-    .day-tab.active { background: #2563eb; border-color: #2563eb; color: white; }
-    .day-tab:hover:not(.active) { border-color: #2563eb; color: #2563eb; }
-    .day-tab .cnt { font-size: 0.72rem; font-weight: 500; opacity: 0.7; margin-left: 3px; }
+    table.tt thead th {
+      padding: 12px 6px; font-size: 0.82rem; font-weight: 700;
+      text-align: center;
+    }
+    table.tt thead th.th-time { background: #2d3748; color: #e2e8f0; width: 80px; }
+    table.tt thead th.th-weekday { background: #1e3a5f; color: white; }
+    table.tt thead th.th-saturday { background: #c05621; color: white; }
+    table.tt tbody tr { border-top: 1px solid #e2e8f0; }
+    td.td-time {
+      padding: 0 10px; font-size: 0.75rem; font-weight: 600;
+      color: #4a5568; background: #f7fafc; text-align: center;
+      white-space: nowrap; border-right: 2px solid #e2e8f0;
+    }
+    td.td-slot {
+      padding: 5px; vertical-align: top; min-height: 70px;
+      background: #fafbff; position: relative;
+    }
+    td.td-slot.sat-slot { background: #fffaf7; }
 
-    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
-    .section-title { font-size: 0.95rem; font-weight: 700; color: #475569; letter-spacing: 0.03em; }
+    .slot-inner { display: flex; flex-direction: column; gap: 4px; min-height: 64px; }
 
-    .teacher-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.5rem; }
-    .teacher-chip {
-      padding: 0.5rem 1rem; border-radius: 20px;
-      background: white; border: 2px solid #e2e8f0;
-      cursor: pointer; font-size: 0.9rem; font-weight: 700;
-      color: #475569; transition: all 0.15s;
-      display: flex; align-items: center; gap: 0.5rem;
+    .btn-slot-add {
+      width: 100%; flex: 1; min-height: 54px;
+      border: 2px dashed #cbd5e0; background: transparent;
+      border-radius: 8px; color: #a0aec0; font-size: 1.4rem;
+      cursor: pointer; transition: all 0.18s;
     }
-    .teacher-chip.active { background: #1e3a5f; border-color: #1e3a5f; color: white; }
-    .teacher-chip:hover:not(.active) { border-color: #1e3a5f; }
-    .chip-del {
-      font-size: 0.7rem; width: 18px; height: 18px; border-radius: 50%;
-      background: rgba(0,0,0,0.12); display: inline-flex;
-      align-items: center; justify-content: center; cursor: pointer;
-    }
-    .teacher-chip.active .chip-del { background: rgba(255,255,255,0.25); }
-    .chip-del:hover { background: #ef4444 !important; color: white; }
-
-    .btn-add-outline {
-      padding: 0.5rem 1rem; border-radius: 20px;
-      background: transparent; border: 2px dashed #93c5fd;
-      cursor: pointer; font-size: 0.9rem; color: #2563eb; font-weight: 600;
-    }
-    .btn-add-outline:hover { background: #eff6ff; }
-
-    .student-panel {
-      background: white; border-radius: 16px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden;
-    }
-    .student-panel-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1.2rem 1.5rem; border-bottom: 1px solid #f1f5f9;
-    }
-    .student-panel-title { font-size: 1rem; font-weight: 700; color: #1e3a5f; }
-    .student-count { font-size: 0.82rem; color: #94a3b8; margin-left: 0.5rem; }
-
-    .student-list { padding: 0.5rem 0.8rem; }
-    .student-row {
-      display: flex; align-items: center; gap: 0.6rem;
-      padding: 0.5rem 0.5rem; border-radius: 10px; transition: background 0.1s;
-    }
-    .student-row:hover { background: #f8fafc; }
-    .snum { font-size: 0.78rem; color: #94a3b8; width: 22px; text-align: right; flex-shrink: 0; }
-
-    .sname-wrap { flex: 1; }
-    .sname-text {
-      font-size: 0.95rem; font-weight: 600; color: #1e293b;
-      padding: 0.2rem 0.5rem; border-radius: 6px; cursor: pointer; display: inline-block;
-    }
-    .sname-text:hover { background: #e2e8f0; }
-    .sname-input {
-      font-size: 0.95rem; font-weight: 600; color: #1e293b;
-      border: 1.5px solid #2563eb; border-radius: 6px;
-      padding: 0.2rem 0.5rem; outline: none; width: 120px;
+    .btn-slot-add:hover {
+      border-color: var(--sc, #3b82f6);
+      color: var(--sc, #3b82f6);
+      background: rgba(59,130,246,0.05);
     }
 
-    .grade-badge {
-      padding: 0.2rem 0.6rem; border-radius: 12px;
-      font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+    .class-card {
+      width: 100%; border-radius: 8px;
+      padding: 7px 8px; cursor: pointer;
+      border: 2px solid transparent;
+      transition: transform 0.12s, box-shadow 0.12s;
+      color: white; position: relative;
     }
-    .grade-elem  { background: #dcfce7; color: #15803d; }
-    .grade-mid   { background: #dbeafe; color: #1d4ed8; }
-    .grade-high  { background: #fce7f3; color: #9d174d; }
-    .grade-none  { background: #f1f5f9; color: #94a3b8; }
+    .class-card:hover { transform: scale(1.02); box-shadow: 0 4px 14px rgba(0,0,0,0.18); }
+    .cc-teacher { font-size: 0.78rem; font-weight: 800; }
+    .cc-count {
+      font-size: 0.68rem; font-weight: 600;
+      background: rgba(0,0,0,0.15); border-radius: 999px;
+      padding: 1px 7px; display: inline-block; margin-top: 2px;
+    }
+    .cc-names {
+      display: flex; flex-wrap: wrap; gap: 2px; margin-top: 4px;
+    }
+    .cc-names span {
+      font-size: 0.63rem; background: rgba(255,255,255,0.2);
+      border-radius: 4px; padding: 1px 4px; white-space: nowrap;
+    }
+    .cc-del {
+      position: absolute; top: 4px; right: 4px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: rgba(0,0,0,0.25); border: none; color: white;
+      font-size: 0.7rem; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .class-card:hover .cc-del { opacity: 1; }
+    .cc-del:hover { background: rgba(220,38,38,0.8) !important; }
 
-    .code-badge {
-      padding: 0.2rem 0.7rem; border-radius: 12px;
-      font-size: 0.8rem; font-weight: 700; flex-shrink: 0; min-width: 60px; text-align: center;
-    }
-    .code-has { background: #ede9fe; color: #6d28d9; }
-    .code-none { background: #f1f5f9; color: #94a3b8; border: 1.5px dashed #cbd5e1; font-size: 0.72rem; }
-
-    .del-student {
-      width: 26px; height: 26px; border-radius: 50%;
-      background: #fee2e2; color: #ef4444;
-      border: none; cursor: pointer; font-size: 0.82rem;
-      opacity: 0; transition: opacity 0.15s; flex-shrink: 0;
-    }
-    .student-row:hover .del-student { opacity: 1; }
-
-    /* Add student row */
-    .add-student-row {
-      padding: 1rem 1rem; border-top: 1px solid #f1f5f9;
-      display: flex; gap: 0.5rem; align-items: flex-end; flex-wrap: wrap;
-    }
-    .add-field { display: flex; flex-direction: column; gap: 0.3rem; }
-    .add-field label { font-size: 0.75rem; color: #64748b; font-weight: 600; }
-    .add-name-input {
-      border: 1.5px solid #e2e8f0; border-radius: 10px;
-      padding: 0.5rem 0.8rem; font-size: 0.9rem; outline: none; width: 130px;
-    }
-    .add-name-input:focus { border-color: #2563eb; }
-    .add-grade-select {
-      border: 1.5px solid #e2e8f0; border-radius: 10px;
-      padding: 0.5rem 0.5rem; font-size: 0.85rem; outline: none;
-      background: white; cursor: pointer;
-    }
-    .add-grade-select:focus { border-color: #2563eb; }
-    .code-preview {
-      border: 1.5px solid #e2e8f0; border-radius: 10px;
-      padding: 0.5rem 0.8rem; font-size: 0.9rem;
-      background: #f8fafc; color: #94a3b8; width: 80px; text-align: center;
-      font-weight: 700;
-    }
-    .code-preview.ready { background: #ede9fe; color: #6d28d9; border-color: #c4b5fd; }
-    .btn-add-student {
-      background: #2563eb; color: white; border: none;
-      border-radius: 10px; padding: 0.55rem 1.2rem;
-      font-size: 0.9rem; font-weight: 700; cursor: pointer; white-space: nowrap;
-    }
-    .btn-add-student:hover { background: #1d4ed8; }
-
-    .empty-state { padding: 2rem; text-align: center; color: #94a3b8; font-size: 0.9rem; }
-    .no-teacher-msg {
-      background: white; border-radius: 16px; padding: 2.5rem;
-      text-align: center; color: #94a3b8; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
-
-    .save-bar {
-      position: fixed; bottom: 0; left: 0; right: 0;
-      background: white; border-top: 1px solid #e2e8f0;
-      padding: 0.8rem 1.5rem;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .save-status { font-size: 0.85rem; color: #64748b; }
-    .btn-save {
-      background: #2563eb; color: white; border: none;
-      border-radius: 12px; padding: 0.8rem 2.5rem;
-      font-size: 1rem; font-weight: 700; cursor: pointer;
-    }
-    .btn-save:hover { background: #1d4ed8; }
-    .btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
-
-    /* ── Print Modal ── */
-    .modal-overlay {
+    /* ── MODAL ── */
+    .modal-bg {
       display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5); z-index: 100;
+      background: rgba(0,0,0,0.45); z-index: 500;
+      align-items: center; justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+    .modal-box {
+      background: white; border-radius: 18px;
+      padding: 26px; width: 400px; max-width: 95vw;
+      max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.28);
+      animation: slideUp 0.2s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(14px); opacity: 0; }
+      to   { transform: translateY(0); opacity: 1; }
+    }
+    .modal-hd { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+    .modal-hd h2 { font-size: 1rem; font-weight: 800; color: #1e3a5f; line-height: 1.4; }
+    .modal-hd .meta { font-size: 0.74rem; color: #718096; margin-top: 2px; }
+    .modal-close {
+      background: #f0f4f8; border: none; border-radius: 8px;
+      width: 30px; height: 30px; font-size: 1rem; cursor: pointer; color: #4a5568;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .modal-close:hover { background: #e2e8f0; }
+
+    .field-label { font-size: 0.78rem; font-weight: 700; color: #4a5568; margin-bottom: 5px; }
+    .field-input {
+      width: 100%; padding: 9px 12px;
+      border: 2px solid #e2e8f0; border-radius: 9px;
+      font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+    }
+    .field-input:focus { border-color: #3b82f6; }
+    .field-group { margin-bottom: 14px; }
+
+    .student-rows { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; min-height: 10px; }
+    .stu-row {
+      display: flex; align-items: center; gap: 7px;
+      background: #f7fafc; border-radius: 8px; padding: 6px 10px;
+    }
+    .stu-row .snum { font-size: 0.72rem; color: #a0aec0; width: 18px; text-align: center; flex-shrink: 0; }
+    .stu-row .sname { flex: 1; font-size: 0.88rem; font-weight: 600; }
+    .grade-badge-sm {
+      padding: 2px 7px; border-radius: 10px;
+      font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+    }
+    .ge { background: #dcfce7; color: #15803d; }
+    .gm { background: #dbeafe; color: #1d4ed8; }
+    .gh { background: #fce7f3; color: #9d174d; }
+    .code-tag {
+      font-size: 0.72rem; font-weight: 700;
+      background: #ede9fe; color: #6d28d9;
+      padding: 2px 7px; border-radius: 10px; flex-shrink: 0;
+    }
+    .btn-stu-del {
+      background: none; border: none; color: #fca5a5; cursor: pointer;
+      font-size: 1rem; padding: 0 2px; line-height: 1;
+    }
+    .btn-stu-del:hover { color: #e53e3e; }
+    .empty-stu { text-align: center; color: #a0aec0; font-size: 0.82rem; padding: 10px 0; }
+
+    .add-stu-row { display: flex; gap: 7px; margin-bottom: 14px; align-items: flex-end; flex-wrap: wrap; }
+    .add-field { display: flex; flex-direction: column; gap: 4px; }
+    .add-field label { font-size: 0.72rem; font-weight: 700; color: #64748b; }
+    .add-name-in {
+      width: 120px; padding: 8px 10px;
+      border: 2px solid #e2e8f0; border-radius: 9px;
+      font-size: 0.88rem; outline: none; transition: border-color 0.2s;
+    }
+    .add-name-in:focus { border-color: #3b82f6; }
+    .add-grade-sel {
+      padding: 8px 8px; border: 2px solid #e2e8f0; border-radius: 9px;
+      font-size: 0.82rem; outline: none; background: white; cursor: pointer;
+    }
+    .add-grade-sel:focus { border-color: #3b82f6; }
+    .code-pre {
+      padding: 8px 10px; border-radius: 9px; font-size: 0.82rem; font-weight: 700;
+      background: #f1f5f9; color: #94a3b8; min-width: 60px; text-align: center;
+    }
+    .code-pre.ready { background: #ede9fe; color: #6d28d9; }
+    .btn-add-stu {
+      padding: 8px 14px; background: #2563eb; color: white;
+      border: none; border-radius: 9px; font-size: 0.85rem;
+      font-weight: 700; cursor: pointer; white-space: nowrap;
+    }
+    .btn-add-stu:hover { background: #1d4ed8; }
+
+    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; border-top: 1px solid #f1f5f9; }
+    .btn-cancel { padding: 9px 18px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 0.84rem; font-weight: 700; cursor: pointer; }
+    .btn-cancel:hover { background: #cbd5e0; }
+    .btn-confirm { padding: 9px 22px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 0.84rem; font-weight: 700; cursor: pointer; }
+    .btn-confirm:hover { background: #1d4ed8; }
+
+    /* ── CODE PRINT MODAL ── */
+    #printModal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 600;
       align-items: flex-start; justify-content: center;
       padding: 2rem 1rem; overflow-y: auto;
     }
-    .modal-overlay.open { display: flex; }
-    .modal-box {
-      background: white; border-radius: 20px;
-      width: 100%; max-width: 680px; overflow: hidden;
-    }
-    .modal-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1.2rem 1.5rem; border-bottom: 1px solid #f1f5f9;
-    }
-    .modal-header h2 { font-size: 1.1rem; font-weight: 700; color: #1e3a5f; }
-    .modal-actions { display: flex; gap: 0.7rem; }
-    .btn-modal-print {
-      background: #2563eb; color: white; border: none;
-      border-radius: 8px; padding: 0.5rem 1.2rem;
-      font-size: 0.9rem; font-weight: 700; cursor: pointer;
-    }
-    .btn-modal-close {
-      background: #f1f5f9; color: #475569; border: none;
-      border-radius: 8px; padding: 0.5rem 1rem;
-      font-size: 0.9rem; cursor: pointer;
-    }
-    .modal-body { padding: 1.5rem; }
-    .grade-section { margin-bottom: 1.5rem; }
-    .grade-section-title {
-      font-size: 0.85rem; font-weight: 700; color: #64748b;
-      letter-spacing: 0.05em; margin-bottom: 0.6rem;
-      padding-bottom: 0.4rem; border-bottom: 2px solid #f1f5f9;
-    }
-    .code-table {
-      width: 100%; border-collapse: collapse; font-size: 0.9rem;
-    }
-    .code-table th {
-      text-align: left; padding: 0.4rem 0.6rem;
-      background: #f8fafc; color: #64748b; font-size: 0.78rem; font-weight: 700;
-    }
-    .code-table td { padding: 0.45rem 0.6rem; border-bottom: 1px solid #f8fafc; }
-    .code-table tr:last-child td { border-bottom: none; }
-    .code-val { font-weight: 700; color: #6d28d9; font-size: 1rem; }
-    .no-code-val { color: #94a3b8; font-size: 0.8rem; }
+    #printModal.open { display: flex; }
+    #printModal .modal-box { max-width: 680px; }
+    .print-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+    .print-table th { background: #f8fafc; padding: 6px 10px; text-align: left; font-size: 0.75rem; font-weight: 700; color: #64748b; }
+    .print-table td { padding: 6px 10px; border-bottom: 1px solid #f1f5f9; }
+    .code-val { font-weight: 800; color: #6d28d9; font-size: 0.95rem; }
+    .print-section-title { font-size: 0.82rem; font-weight: 700; color: #64748b; padding: 8px 0 4px; border-bottom: 2px solid #f1f5f9; margin-bottom: 6px; }
+    .btn-do-print { padding: 8px 20px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
 
-    /* Print styles */
+    /* ── SAVE STATUS BAR ── */
+    .save-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; border-top: 1px solid #e2e8f0;
+      padding: 0.7rem 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .save-status { font-size: 0.84rem; color: #64748b; }
+    .btn-save-main {
+      padding: 0.75rem 2.5rem; background: #2563eb; color: white;
+      border: none; border-radius: 12px; font-size: 0.95rem;
+      font-weight: 700; cursor: pointer;
+    }
+    .btn-save-main:hover { background: #1d4ed8; }
+    .btn-save-main:disabled { background: #94a3b8; cursor: not-allowed; }
+    .pb { padding-bottom: 70px; }
+
     @media print {
-      body > *:not(.modal-overlay) { display: none !important; }
-      .modal-overlay { display: block !important; position: static !important; background: none !important; padding: 0 !important; }
-      .modal-box { border-radius: 0 !important; box-shadow: none !important; max-width: none !important; }
-      .modal-actions { display: none !important; }
-      .modal-header { border-bottom: 2px solid #1e3a5f !important; }
+      body > *:not(#printModal) { display: none !important; }
+      #printModal { display: block !important; position: static !important; background: none !important; padding: 0 !important; }
+      #printModal .modal-box { box-shadow: none !important; border-radius: 0 !important; }
+      .print-actions { display: none !important; }
     }
   </style>
 </head>
 <body>
 
-<div class="topbar">
-  <a href="./index.html">← 대시보드</a>
-  <h1>시간표 관리</h1>
-  <button class="btn-print-top" onclick="openPrintModal()">🖨 코드 출력</button>
-</div>
-
-<div class="main">
-  <div class="day-tabs" id="dayTabs"></div>
-  <div class="section-header">
-    <span class="section-title" id="teacherSectionTitle">선생님</span>
+<!-- ─── LOGIN ─── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="card-logo">🗓️</div>
+    <div class="card-title">ThinkUp 시간표</div>
+    <p class="card-sub">과목 담당 선생님 전용 · 코드 4자리 입력</p>
+    <div class="login-field">
+      <label>과목 코드</label>
+      <input type="password" id="subjectCodeInput" placeholder="• • • •" maxlength="4"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login-full" onclick="doLogin()">입장하기</button>
+    <div class="subject-hints" id="subjectHints"></div>
+    <div class="admin-link"><a href="./index.html">← 관리자 대시보드</a></div>
   </div>
-  <div class="teacher-grid" id="teacherGrid"></div>
-  <div id="studentArea"></div>
 </div>
 
-<div class="save-bar">
-  <span class="save-status" id="saveStatus">데이터 불러오는 중...</span>
-  <button class="btn-save" id="saveBtn" onclick="saveAll()">저장</button>
+<!-- ─── APP ─── -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <h1>ThinkUp 시간표</h1>
+      <div class="tb-sub" id="topbarSub"></div>
+    </div>
+    <div class="topbar-right">
+      <span class="subject-badge" id="subjectBadge"></span>
+      <button class="btn-tb" onclick="openCodePrint()">🖨 코드 출력</button>
+      <button class="btn-tb danger" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="main-wrap pb">
+    <div class="table-scroll">
+      <table class="tt" id="ttGrid"></table>
+    </div>
+  </div>
 </div>
 
-<!-- Print Modal -->
-<div class="modal-overlay" id="printModal">
+<!-- ─── CLASS EDIT MODAL ─── -->
+<div class="modal-bg" id="classModal">
   <div class="modal-box">
-    <div class="modal-header">
-      <h2>학생 코드 목록</h2>
-      <div class="modal-actions">
-        <button class="btn-modal-print" onclick="window.print()">🖨 인쇄</button>
-        <button class="btn-modal-close" onclick="closePrintModal()">닫기</button>
+    <div class="modal-hd">
+      <div>
+        <h2 id="modalTitle">수업 편집</h2>
+        <div class="meta" id="modalMeta"></div>
+      </div>
+      <button class="modal-close" onclick="closeClassModal()">✕</button>
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">선생님 이름</div>
+      <input class="field-input" id="modalTeacher" placeholder="선생님 이름 입력">
+    </div>
+
+    <div class="field-group">
+      <div class="field-label">수업 시간 (시작)</div>
+      <input class="field-input" id="modalTime" placeholder="예: 14:00" maxlength="5">
+    </div>
+
+    <div class="field-label" style="margin-bottom:8px">학생 목록</div>
+    <div class="student-rows" id="modalStudentRows"></div>
+
+    <div class="add-stu-row">
+      <div class="add-field">
+        <label>이름</label>
+        <input class="add-name-in" id="addStuName" placeholder="학생 이름"
+               onkeydown="if(event.key==='Enter')document.getElementById('addStuGrade').focus()">
+      </div>
+      <div class="add-field">
+        <label>학년</label>
+        <select class="add-grade-sel" id="addStuGrade" onchange="previewStuCode()">
+          <option value="">학년</option>
+          <optgroup label="초등"><option value="초3">초3</option><option value="초4">초4</option><option value="초5">초5</option><option value="초6">초6</option></optgroup>
+          <optgroup label="중학교"><option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option></optgroup>
+          <optgroup label="고등"><option value="고1">고1</option><option value="고2">고2</option></optgroup>
+        </select>
+      </div>
+      <div class="add-field">
+        <label>코드</label>
+        <div class="code-pre" id="stuCodePre">—</div>
+      </div>
+      <button class="btn-add-stu" onclick="addStudentToModal()">+ 추가</button>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeClassModal()">취소</button>
+      <button class="btn-confirm" onclick="confirmClassModal()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CODE PRINT MODAL ─── -->
+<div id="printModal">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div><h2>학생 코드 목록</h2><div class="meta" id="printModalSub"></div></div>
+      <div class="print-actions" style="display:flex;gap:8px">
+        <button class="btn-do-print" onclick="window.print()">🖨 인쇄</button>
+        <button class="modal-close" onclick="document.getElementById('printModal').classList.remove('open')">✕</button>
       </div>
     </div>
-    <div class="modal-body" id="printModalBody"></div>
+    <div id="printModalBody"></div>
   </div>
 </div>
 
+<!-- ─── SAVE BAR ─── -->
+<div class="save-bar" id="saveBar" style="display:none">
+  <span class="save-status" id="saveStatus">데이터 불러오는 중...</span>
+  <button class="btn-save-main" id="saveBtn" onclick="saveAll()">저장하기</button>
+</div>
+
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 <script src="../firebase-config.js"></script>
 <script>
-  if (!sessionStorage.getItem('thinkup_admin')) location.href = './index.html';
 
-  const DAYS = [
-    {code:'mon', label:'월'}, {code:'tue', label:'화'},
-    {code:'wed', label:'수'}, {code:'thu', label:'목'},
-    {code:'fri', label:'금'}, {code:'sat', label:'토'},
-  ];
+// ── CONSTANTS ─────────────────────────────────────────────────────────────
 
-  const GRADES = [
-    {key:'초3', label:'초등 3학년', prefix:3, cls:'grade-elem'},
-    {key:'초4', label:'초등 4학년', prefix:4, cls:'grade-elem'},
-    {key:'초5', label:'초등 5학년', prefix:5, cls:'grade-elem'},
-    {key:'초6', label:'초등 6학년', prefix:6, cls:'grade-elem'},
-    {key:'중1', label:'중학교 1학년', prefix:7, cls:'grade-mid'},
-    {key:'중2', label:'중학교 2학년', prefix:8, cls:'grade-mid'},
-    {key:'중3', label:'중학교 3학년', prefix:9, cls:'grade-mid'},
-    {key:'고1', label:'고등 1학년', prefix:1, cls:'grade-high'},
-    {key:'고2', label:'고등 2학년', prefix:2, cls:'grade-high'},
-  ];
+const SUBJECTS = [
+  {key:'korean',  name:'국어', code:'1111', color:'#3b82f6', light:'#eff6ff'},
+  {key:'english', name:'영어', code:'2222', color:'#22c55e', light:'#f0fdf4'},
+  {key:'math',    name:'수학', code:'3333', color:'#a855f7', light:'#faf5ff'},
+  {key:'science', name:'과학', code:'4444', color:'#14b8a6', light:'#f0fdfa'},
+  {key:'history', name:'역사', code:'5555', color:'#f97316', light:'#fff7ed'},
+];
 
-  let schedule = {};
-  let currentDay = 'mon';
-  let currentTeacherIdx = null;
-  let hasChanges = false;
+const TIME_SLOTS = ['13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
 
-  DAYS.forEach(d => { schedule[d.code] = { day: d.label, teachers: [] }; });
+const DAYS = [
+  {code:'mon', label:'월요일', short:'월', sat:false},
+  {code:'tue', label:'화요일', short:'화', sat:false},
+  {code:'wed', label:'수요일', short:'수', sat:false},
+  {code:'thu', label:'목요일', short:'목', sat:false},
+  {code:'fri', label:'금요일', short:'금', sat:false},
+  {code:'sat', label:'토요일', short:'토', sat:true},
+];
 
-  // ── Helpers ────────────────────────────────────────────────
+const GRADES = [
+  {key:'초3', prefix:3, cls:'ge'}, {key:'초4', prefix:4, cls:'ge'},
+  {key:'초5', prefix:5, cls:'ge'}, {key:'초6', prefix:6, cls:'ge'},
+  {key:'중1', prefix:7, cls:'gm'}, {key:'중2', prefix:8, cls:'gm'}, {key:'중3', prefix:9, cls:'gm'},
+  {key:'고1', prefix:1, cls:'gh'}, {key:'고2', prefix:2, cls:'gh'},
+];
 
-  function gradeInfo(key) {
-    return GRADES.find(g => g.key === key) || null;
+// ── STATE ──────────────────────────────────────────────────────────────────
+
+let currentSubject = null;  // SUBJECTS item
+let ttData = {};            // dayCode → [ {time, teacher, students:[{name,grade,code}]} ]
+let modalState = null;      // {dayCode, time, slotIdx, students:[...]}
+let hasChanges = false;
+
+// ── INIT ──────────────────────────────────────────────────────────────────
+
+DAYS.forEach(d => { ttData[d.code] = []; });
+
+// Build hint chips
+document.getElementById('subjectHints').innerHTML =
+  SUBJECTS.map(s =>
+    `<div class="hint-chip" style="background:${s.color}">${s.name} · ${s.code}</div>`
+  ).join('');
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────
+
+function doLogin() {
+  const code = document.getElementById('subjectCodeInput').value.trim();
+  const sub = SUBJECTS.find(s => s.code === code);
+  if (!sub) {
+    document.getElementById('loginError').textContent = '코드가 맞지 않습니다.';
+    return;
   }
+  currentSubject = sub;
+  sessionStorage.setItem('thinkup_subject', sub.key);
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('saveBar').style.display = 'flex';
+  document.getElementById('subjectBadge').textContent = sub.name;
+  document.getElementById('subjectBadge').style.background = sub.color;
+  document.getElementById('topbarSub').textContent =
+    `슬롯을 클릭해 수업을 추가하세요 · ${sub.name} 시간표`;
+  document.documentElement.style.setProperty('--sc', sub.color);
+  loadData();
+}
 
-  function gradeCls(key) {
-    const g = gradeInfo(key);
-    return g ? g.cls : 'grade-none';
+function doLogout() {
+  sessionStorage.removeItem('thinkup_subject');
+  currentSubject = null;
+  DAYS.forEach(d => { ttData[d.code] = []; });
+  hasChanges = false;
+  document.getElementById('subjectCodeInput').value = '';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('saveBar').style.display = 'none';
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+
+// auto-resume session
+(function resumeSession() {
+  const savedKey = sessionStorage.getItem('thinkup_subject');
+  if (savedKey) {
+    const sub = SUBJECTS.find(s => s.key === savedKey);
+    if (sub) {
+      document.getElementById('subjectCodeInput').value = sub.code;
+      doLogin();
+    }
   }
+})();
 
-  /** Collect all used codes across ALL days */
-  function usedCodesSet() {
-    const s = new Set();
+// ── FIREBASE LOAD ─────────────────────────────────────────────────────────
+
+async function loadData() {
+  setStatus('불러오는 중...');
+  try {
     for (const d of DAYS) {
-      for (const t of (schedule[d.code]?.teachers || [])) {
-        for (const st of (t.students || [])) {
-          if (st.code) s.add(st.code);
-        }
+      const doc = await db.collection('timetable').doc(`${currentSubject.key}_${d.code}`).get();
+      if (doc.exists) {
+        ttData[d.code] = doc.data().slots || [];
+      } else {
+        ttData[d.code] = [];
       }
     }
-    return s;
+    setStatus('로드 완료');
+  } catch(e) {
+    setStatus('로드 오류: ' + e.message, '#ef4444');
   }
+  renderGrid();
+}
 
-  /** Get next available code for a grade key */
-  function nextCode(gradeKey) {
-    const g = gradeInfo(gradeKey);
-    if (!g) return '';
-    const used = usedCodesSet();
-    const start = g.prefix * 1000 + 1;
-    const end   = g.prefix * 1000 + 999;
-    for (let i = start; i <= end; i++) {
-      if (!used.has(String(i))) return String(i);
-    }
-    return '';
-  }
+// ── GRID RENDER ───────────────────────────────────────────────────────────
 
-  function setStatus(msg, color) {
-    const el = document.getElementById('saveStatus');
-    el.textContent = msg;
-    el.style.color = color || '#64748b';
-  }
+function renderGrid() {
+  const sub = currentSubject;
+  let html = `<thead><tr>
+    <th class="th-time">시간</th>
+    ${DAYS.map(d =>
+      `<th class="${d.sat ? 'th-saturday' : 'th-weekday'}">${d.label}</th>`
+    ).join('')}
+  </tr></thead><tbody>`;
 
-  function markChanged() {
-    hasChanges = true;
-    setStatus('저장하지 않은 변경사항이 있습니다', '#f59e0b');
-  }
-
-  // ── Load ───────────────────────────────────────────────────
-
-  async function loadSchedule() {
-    try {
-      for (const d of DAYS) {
-        const doc = await db.collection('schedules').doc(d.code).get();
-        if (doc.exists) {
-          const data = doc.data();
-          if (!data.teachers) data.teachers = [];
-          schedule[d.code] = data;
-        }
-      }
-      setStatus('최신 데이터 로드 완료', '#10b981');
-    } catch(e) {
-      setStatus('로드 오류: ' + e.message, '#ef4444');
-    }
-    renderAll();
-  }
-
-  // ── Render ─────────────────────────────────────────────────
-
-  function renderAll() { renderDayTabs(); renderTeachers(); }
-
-  function renderDayTabs() {
-    document.getElementById('dayTabs').innerHTML = DAYS.map(d => {
-      const cnt = (schedule[d.code]?.teachers || []).length;
-      return `<button class="day-tab ${d.code === currentDay ? 'active' : ''}" onclick="selectDay('${d.code}')">
-        ${d.label}요일<span class="cnt">${cnt ? cnt+'명' : ''}</span>
-      </button>`;
-    }).join('');
-  }
-
-  function selectDay(code) {
-    currentDay = code;
-    currentTeacherIdx = null;
-    renderAll();
-  }
-
-  function renderTeachers() {
-    const teachers = schedule[currentDay]?.teachers || [];
-    const dayLabel = DAYS.find(d => d.code === currentDay).label;
-    document.getElementById('teacherSectionTitle').textContent = `${dayLabel}요일 선생님`;
-
-    document.getElementById('teacherGrid').innerHTML =
-      teachers.map((t, i) => `
-        <div class="teacher-chip ${currentTeacherIdx === i ? 'active' : ''}" onclick="selectTeacher(${i})">
-          ${t.name}
-          <span class="chip-del" onclick="event.stopPropagation();deleteTeacher(${i})" title="삭제">✕</span>
-        </div>
-      `).join('') +
-      `<button class="btn-add-outline" onclick="addTeacher()">+ 선생님 추가</button>`;
-
-    renderStudentPanel();
-  }
-
-  function selectTeacher(idx) { currentTeacherIdx = idx; renderTeachers(); }
-
-  function renderStudentPanel() {
-    const area = document.getElementById('studentArea');
-    if (currentTeacherIdx === null) {
-      area.innerHTML = `<div class="no-teacher-msg">위에서 선생님을 선택하면 학생 목록을 관리할 수 있습니다</div>`;
-      return;
-    }
-    const teacher = schedule[currentDay].teachers[currentTeacherIdx];
-    if (!teacher) return;
-    const dayLabel = DAYS.find(d => d.code === currentDay).label;
-
-    const rows = teacher.students.length === 0
-      ? `<div class="empty-state">학생이 없습니다. 아래에서 추가하세요.</div>`
-      : teacher.students.map((s, i) => {
-          const g = gradeInfo(s.grade);
-          return `
-            <div class="student-row">
-              <span class="snum">${i+1}</span>
-              <div class="sname-wrap">
-                <span class="sname-text" ondblclick="editName(${i})" title="더블클릭으로 이름 수정" id="sname_${i}">${s.name}</span>
-              </div>
-              <span class="grade-badge ${gradeCls(s.grade)}">${s.grade || '학년?'}</span>
-              <span class="code-badge ${s.code ? 'code-has' : 'code-none'}">${s.code || '코드없음'}</span>
-              <button class="del-student" onclick="deleteStudent(${i})" title="삭제">✕</button>
-            </div>`;
-        }).join('');
-
-    const gradeOptions = GRADES.map(g =>
-      `<option value="${g.key}">${g.label}</option>`
-    ).join('');
-
-    area.innerHTML = `
-      <div class="student-panel">
-        <div class="student-panel-header">
-          <div>
-            <span class="student-panel-title">${dayLabel}요일 · ${teacher.name} 선생님</span>
-            <span class="student-count">${teacher.students.length}명</span>
-          </div>
-        </div>
-        <div class="student-list">${rows}</div>
-        <div class="add-student-row">
-          <div class="add-field">
-            <label>학생 이름</label>
-            <input class="add-name-input" id="addNameInput" placeholder="이름 입력"
-              onkeydown="if(event.key==='Enter')document.getElementById('addGradeSelect').focus()">
-          </div>
-          <div class="add-field">
-            <label>학년</label>
-            <select class="add-grade-select" id="addGradeSelect" onchange="previewCode()">
-              <option value="">학년 선택</option>
-              ${gradeOptions}
-            </select>
-          </div>
-          <div class="add-field">
-            <label>부여 코드</label>
-            <div class="code-preview" id="codePreview">—</div>
-          </div>
-          <button class="btn-add-student" onclick="confirmAddStudent()">+ 추가</button>
-        </div>
-      </div>`;
-  }
-
-  function previewCode() {
-    const grade = document.getElementById('addGradeSelect').value;
-    const prev = document.getElementById('codePreview');
-    if (!grade) { prev.textContent = '—'; prev.classList.remove('ready'); return; }
-    const code = nextCode(grade);
-    if (code) {
-      prev.textContent = code;
-      prev.classList.add('ready');
-    } else {
-      prev.textContent = '포화';
-      prev.classList.remove('ready');
-    }
-  }
-
-  // ── Actions ────────────────────────────────────────────────
-
-  function addTeacher() {
-    const name = prompt('선생님 이름을 입력하세요:');
-    if (!name || !name.trim()) return;
-    schedule[currentDay].teachers.push({ name: name.trim(), students: [] });
-    currentTeacherIdx = schedule[currentDay].teachers.length - 1;
-    markChanged();
-    renderAll();
-  }
-
-  function deleteTeacher(idx) {
-    const t = schedule[currentDay].teachers[idx];
-    if (!confirm(`"${t.name}" 선생님을 삭제할까요? 학생 ${t.students.length}명도 함께 삭제됩니다.`)) return;
-    schedule[currentDay].teachers.splice(idx, 1);
-    if (currentTeacherIdx === idx) currentTeacherIdx = null;
-    else if (currentTeacherIdx > idx) currentTeacherIdx--;
-    markChanged();
-    renderAll();
-  }
-
-  function confirmAddStudent() {
-    const nameEl = document.getElementById('addNameInput');
-    const gradeEl = document.getElementById('addGradeSelect');
-    const name = nameEl.value.trim();
-    const grade = gradeEl.value;
-    if (!name) { nameEl.focus(); return; }
-    if (!grade) { gradeEl.focus(); return; }
-
-    const code = nextCode(grade);
-    if (!code) { alert('해당 학년 코드가 모두 소진되었습니다.'); return; }
-
-    schedule[currentDay].teachers[currentTeacherIdx].students.push({ name, grade, code });
-    nameEl.value = '';
-    gradeEl.value = '';
-    document.getElementById('codePreview').textContent = '—';
-    document.getElementById('codePreview').classList.remove('ready');
-    nameEl.focus();
-    markChanged();
-    renderStudentPanel();
-    renderTeachers();
-  }
-
-  function deleteStudent(idx) {
-    schedule[currentDay].teachers[currentTeacherIdx].students.splice(idx, 1);
-    markChanged();
-    renderStudentPanel();
-    renderTeachers();
-  }
-
-  function editName(idx) {
-    const s = schedule[currentDay].teachers[currentTeacherIdx].students[idx];
-    const el = document.getElementById('sname_' + idx);
-    el.outerHTML = `<input class="sname-input" id="sname_${idx}" type="text" value="${s.name}"
-      onblur="saveName(${idx},this.value)"
-      onkeydown="if(event.key==='Enter')this.blur()" autofocus>`;
-    setTimeout(() => { const i = document.getElementById('sname_'+idx); if(i){i.focus();i.select();} }, 0);
-  }
-
-  function saveName(idx, value) {
-    if (value.trim()) {
-      schedule[currentDay].teachers[currentTeacherIdx].students[idx].name = value.trim();
-      markChanged();
-    }
-    renderStudentPanel();
-  }
-
-  // ── Save ───────────────────────────────────────────────────
-
-  async function saveAll() {
-    const btn = document.getElementById('saveBtn');
-    btn.textContent = '저장 중...'; btn.disabled = true;
-    try {
-      const batch = db.batch();
-      for (const d of DAYS) {
-        batch.set(db.collection('schedules').doc(d.code), schedule[d.code]);
-      }
-      // Save /students/{code}
-      const allStudents = {};
-      for (const d of DAYS) {
-        for (const t of (schedule[d.code]?.teachers || [])) {
-          for (const s of (t.students || [])) {
-            if (s.code) allStudents[s.code] = { name: s.name, code: s.code, grade: s.grade || '' };
-          }
-        }
-      }
-      for (const [code, student] of Object.entries(allStudents)) {
-        batch.set(db.collection('students').doc(code), student);
-      }
-      await batch.commit();
-      hasChanges = false;
-      setStatus(`✓ 저장 완료 — 코드 등록 학생 ${Object.keys(allStudents).length}명`, '#10b981');
-      renderDayTabs();
-    } catch(e) {
-      setStatus('저장 오류: ' + e.message, '#ef4444');
-    }
-    btn.textContent = '저장'; btn.disabled = false;
-  }
-
-  // ── Print Modal ────────────────────────────────────────────
-
-  function openPrintModal() {
-    // Collect all unique students (by code), ungrouped then group by grade
-    const byGrade = {};
-    const noCode = [];
-
+  for (const time of TIME_SLOTS) {
+    html += `<tr><td class="td-time">${time}</td>`;
     for (const d of DAYS) {
-      for (const t of (schedule[d.code]?.teachers || [])) {
-        for (const s of (t.students || [])) {
-          if (!s.code) { noCode.push(s); continue; }
-          if (!byGrade[s.grade]) byGrade[s.grade] = {};
-          byGrade[s.grade][s.code] = s; // deduplicate by code
+      const slots = (ttData[d.code] || []).filter(s => s.time === time);
+      html += `<td class="td-slot ${d.sat ? 'sat-slot' : ''}">
+        <div class="slot-inner">
+          ${slots.map((slot, idx) => renderCard(slot, d.code, time, idx)).join('')}
+          <button class="btn-slot-add" style="--sc:${sub.color}"
+                  onclick="openClassModal('${d.code}','${time}')">+</button>
+        </div>
+      </td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody>';
+  document.getElementById('ttGrid').innerHTML = html;
+}
+
+function renderCard(slot, dayCode, time, idx) {
+  const sub = currentSubject;
+  const names = (slot.students || []).slice(0, 8).map(s =>
+    `<span>${s.name}</span>`
+  ).join('');
+  const more = slot.students.length > 8 ? `<div class="card-more">+${slot.students.length - 8}명</div>` : '';
+  return `
+    <div class="class-card" style="background:${sub.color}"
+         onclick="openClassModal('${dayCode}','${time}',${idx})">
+      <button class="cc-del"
+              onclick="event.stopPropagation();deleteSlot('${dayCode}','${time}',${idx})">✕</button>
+      <div class="cc-teacher">${slot.teacher || '선생님 미정'}</div>
+      <div class="cc-count">${slot.students.length}명</div>
+      <div class="cc-names">${names}</div>${more}
+    </div>`;
+}
+
+// ── SLOT MANAGEMENT ───────────────────────────────────────────────────────
+
+function deleteSlot(dayCode, time, idx) {
+  const slots = ttData[dayCode].filter(s => s.time === time);
+  const target = slots[idx];
+  const globalIdx = ttData[dayCode].indexOf(target);
+  if (globalIdx === -1) return;
+  if (!confirm(`"${target.teacher || '이 수업'}"을 삭제할까요?`)) return;
+  ttData[dayCode].splice(globalIdx, 1);
+  markChanged();
+  renderGrid();
+}
+
+// ── MODAL ─────────────────────────────────────────────────────────────────
+
+function openClassModal(dayCode, time, existingIdx) {
+  const sub = currentSubject;
+  const dayLabel = DAYS.find(d => d.code === dayCode).label;
+  let slot;
+
+  if (existingIdx !== undefined) {
+    const slots = ttData[dayCode].filter(s => s.time === time);
+    slot = slots[existingIdx];
+    modalState = { dayCode, time, globalIdx: ttData[dayCode].indexOf(slot), students: JSON.parse(JSON.stringify(slot.students || [])) };
+    document.getElementById('modalTitle').textContent = '수업 편집';
+    document.getElementById('modalTeacher').value = slot.teacher || '';
+    document.getElementById('modalTime').value = slot.time || time;
+  } else {
+    modalState = { dayCode, time, globalIdx: -1, students: [] };
+    document.getElementById('modalTitle').textContent = '수업 추가';
+    document.getElementById('modalTeacher').value = '';
+    document.getElementById('modalTime').value = time;
+  }
+  document.getElementById('modalMeta').textContent =
+    `${dayLabel} ${time} · ${sub.name}`;
+  document.getElementById('addStuName').value = '';
+  document.getElementById('addStuGrade').value = '';
+  document.getElementById('stuCodePre').textContent = '—';
+  document.getElementById('stuCodePre').classList.remove('ready');
+  renderModalStudents();
+  document.getElementById('classModal').classList.add('open');
+  document.getElementById('modalTeacher').focus();
+}
+
+function closeClassModal() {
+  document.getElementById('classModal').classList.remove('open');
+  modalState = null;
+}
+
+function renderModalStudents() {
+  const el = document.getElementById('modalStudentRows');
+  if (!modalState || modalState.students.length === 0) {
+    el.innerHTML = '<div class="empty-stu">학생이 없습니다. 아래에서 추가하세요.</div>';
+    return;
+  }
+  el.innerHTML = modalState.students.map((s, i) => {
+    const g = GRADES.find(g => g.key === s.grade);
+    const cls = g ? g.cls : 'ge';
+    return `<div class="stu-row">
+      <span class="snum">${i+1}</span>
+      <span class="sname">${s.name}</span>
+      <span class="grade-badge-sm ${cls}">${s.grade || '?'}</span>
+      <span class="code-tag">${s.code || '—'}</span>
+      <button class="btn-stu-del" onclick="removeStudentFromModal(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function removeStudentFromModal(idx) {
+  modalState.students.splice(idx, 1);
+  renderModalStudents();
+}
+
+// ── CODE AUTO-ASSIGN ──────────────────────────────────────────────────────
+
+function usedCodesSet() {
+  const set = new Set();
+  for (const d of DAYS) {
+    for (const slot of (ttData[d.code] || [])) {
+      for (const s of (slot.students || [])) {
+        if (s.code) set.add(s.code);
+      }
+    }
+  }
+  // also include modal's current students
+  if (modalState) {
+    for (const s of modalState.students) {
+      if (s.code) set.add(s.code);
+    }
+  }
+  return set;
+}
+
+function nextCode(gradeKey) {
+  const g = GRADES.find(g => g.key === gradeKey);
+  if (!g) return '';
+  const used = usedCodesSet();
+  const start = g.prefix * 1000 + 1;
+  const end   = g.prefix * 1000 + 999;
+  for (let i = start; i <= end; i++) {
+    if (!used.has(String(i))) return String(i);
+  }
+  return '';
+}
+
+function previewStuCode() {
+  const grade = document.getElementById('addStuGrade').value;
+  const pre = document.getElementById('stuCodePre');
+  if (!grade) { pre.textContent = '—'; pre.classList.remove('ready'); return; }
+  const code = nextCode(grade);
+  pre.textContent = code || '포화';
+  pre.classList.toggle('ready', !!code);
+}
+
+function addStudentToModal() {
+  const name  = document.getElementById('addStuName').value.trim();
+  const grade = document.getElementById('addStuGrade').value;
+  if (!name)  { document.getElementById('addStuName').focus(); return; }
+  if (!grade) { document.getElementById('addStuGrade').focus(); return; }
+  const code = nextCode(grade);
+  if (!code)  { alert('해당 학년 코드가 모두 소진되었습니다.'); return; }
+  modalState.students.push({ name, grade, code });
+  document.getElementById('addStuName').value = '';
+  document.getElementById('addStuGrade').value = '';
+  document.getElementById('stuCodePre').textContent = '—';
+  document.getElementById('stuCodePre').classList.remove('ready');
+  document.getElementById('addStuName').focus();
+  renderModalStudents();
+}
+
+function confirmClassModal() {
+  const teacher = document.getElementById('modalTeacher').value.trim();
+  const time    = document.getElementById('modalTime').value.trim();
+  if (!teacher) { document.getElementById('modalTeacher').focus(); return; }
+  if (!time)    { document.getElementById('modalTime').focus(); return; }
+
+  const slotObj = {
+    teacher,
+    time,
+    subject: currentSubject.name,
+    students: [...modalState.students],
+  };
+
+  if (modalState.globalIdx === -1) {
+    ttData[modalState.dayCode].push(slotObj);
+  } else {
+    ttData[modalState.dayCode][modalState.globalIdx] = slotObj;
+  }
+
+  markChanged();
+  closeClassModal();
+  renderGrid();
+}
+
+// ── SAVE ──────────────────────────────────────────────────────────────────
+
+async function saveAll() {
+  const btn = document.getElementById('saveBtn');
+  btn.textContent = '저장 중...'; btn.disabled = true;
+  try {
+    const batch = db.batch();
+    const allStudents = {};
+
+    // 1. Save this subject's timetable
+    for (const d of DAYS) {
+      const ref = db.collection('timetable').doc(`${currentSubject.key}_${d.code}`);
+      batch.set(ref, { subject: currentSubject.name, day: d.label, slots: ttData[d.code] });
+    }
+
+    // 2. Collect all coded students
+    for (const d of DAYS) {
+      for (const slot of (ttData[d.code] || [])) {
+        for (const s of (slot.students || [])) {
+          if (s.code) allStudents[s.code] = { name: s.name, code: s.code, grade: s.grade || '' };
         }
       }
     }
-
-    let html = '';
-    const gradeOrder = GRADES.map(g => g.key);
-    for (const gKey of gradeOrder) {
-      if (!byGrade[gKey]) continue;
-      const g = gradeInfo(gKey);
-      const students = Object.values(byGrade[gKey]).sort((a,b) => a.code.localeCompare(b.code));
-      html += `<div class="grade-section">
-        <div class="grade-section-title">${g.label}</div>
-        <table class="code-table">
-          <thead><tr><th>번호</th><th>이름</th><th>코드</th></tr></thead>
-          <tbody>${students.map((s,i) =>
-            `<tr><td>${i+1}</td><td>${s.name}</td><td class="code-val">${s.code}</td></tr>`
-          ).join('')}</tbody>
-        </table>
-      </div>`;
+    for (const [code, stu] of Object.entries(allStudents)) {
+      batch.set(db.collection('students').doc(code), stu);
     }
 
-    if (noCode.length > 0) {
-      html += `<div class="grade-section">
-        <div class="grade-section-title">코드 미부여</div>
-        <table class="code-table">
-          <thead><tr><th>번호</th><th>이름</th><th>코드</th></tr></thead>
-          <tbody>${noCode.map((s,i) =>
-            `<tr><td>${i+1}</td><td>${s.name}</td><td class="no-code-val">미부여</td></tr>`
-          ).join('')}</tbody>
-        </table>
-      </div>`;
+    await batch.commit();
+
+    // 3. Regenerate /schedules/{day} from all subjects
+    await regenerateSchedules();
+
+    hasChanges = false;
+    setStatus(`✓ 저장 완료 — 코드 학생 ${Object.keys(allStudents).length}명`, '#10b981');
+  } catch(e) {
+    setStatus('저장 오류: ' + e.message, '#ef4444');
+  }
+  btn.textContent = '저장하기'; btn.disabled = false;
+}
+
+async function regenerateSchedules() {
+  for (const d of DAYS) {
+    const allTeachers = [];
+    for (const sub of SUBJECTS) {
+      const doc = await db.collection('timetable').doc(`${sub.key}_${d.code}`).get();
+      if (doc.exists) {
+        const slots = doc.data().slots || [];
+        for (const slot of slots) {
+          allTeachers.push({
+            name: slot.teacher,
+            subject: slot.subject || sub.name,
+            time: slot.time,
+            students: slot.students || [],
+          });
+        }
+      }
     }
+    await db.collection('schedules').doc(d.code).set({ day: d.label, teachers: allTeachers });
+  }
+}
 
-    if (!html) html = `<div class="empty-state">등록된 학생이 없습니다.</div>`;
+// ── CODE PRINT ────────────────────────────────────────────────────────────
 
-    document.getElementById('printModalBody').innerHTML = html;
-    document.getElementById('printModal').classList.add('open');
+function openCodePrint() {
+  const byGrade = {};
+  const noCode = [];
+  for (const d of DAYS) {
+    for (const slot of (ttData[d.code] || [])) {
+      for (const s of (slot.students || [])) {
+        if (!s.code) { noCode.push(s); continue; }
+        if (!byGrade[s.grade]) byGrade[s.grade] = {};
+        byGrade[s.grade][s.code] = s;
+      }
+    }
   }
 
-  function closePrintModal() {
+  let html = '';
+  for (const g of GRADES) {
+    if (!byGrade[g.key]) continue;
+    const list = Object.values(byGrade[g.key]).sort((a,b) => a.code.localeCompare(b.code));
+    html += `<div class="print-section-title">${g.key}</div>
+      <table class="print-table"><thead><tr><th>#</th><th>이름</th><th>코드</th></tr></thead><tbody>
+        ${list.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td class="code-val">${s.code}</td></tr>`).join('')}
+      </tbody></table>`;
+  }
+  if (noCode.length) {
+    html += `<div class="print-section-title">코드 미부여</div>
+      <table class="print-table"><thead><tr><th>#</th><th>이름</th><th>코드</th></tr></thead><tbody>
+        ${noCode.map((s,i) => `<tr><td>${i+1}</td><td>${s.name}</td><td style="color:#94a3b8">미부여</td></tr>`).join('')}
+      </tbody></table>`;
+  }
+  if (!html) html = '<p style="color:#94a3b8;text-align:center;padding:20px">등록된 학생이 없습니다.</p>';
+
+  document.getElementById('printModalSub').textContent = `${currentSubject.name} 과목`;
+  document.getElementById('printModalBody').innerHTML = html;
+  document.getElementById('printModal').classList.add('open');
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────
+
+function markChanged() {
+  hasChanges = true;
+  setStatus('저장하지 않은 변경사항이 있습니다', '#f59e0b');
+}
+
+function setStatus(msg, color) {
+  const el = document.getElementById('saveStatus');
+  el.textContent = msg;
+  el.style.color = color || '#64748b';
+}
+
+// close modals on backdrop click
+document.getElementById('classModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('classModal')) closeClassModal();
+});
+document.getElementById('printModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('printModal'))
     document.getElementById('printModal').classList.remove('open');
-  }
-
-  document.getElementById('printModal').addEventListener('click', e => {
-    if (e.target === document.getElementById('printModal')) closePrintModal();
-  });
-
-  // ── Init ───────────────────────────────────────────────────
-  loadSchedule();
+});
 </script>
 </body>
 </html>
