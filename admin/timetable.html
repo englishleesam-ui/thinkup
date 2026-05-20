@@ -546,7 +546,11 @@ function doLogin() {
   loadData();
 }
 
-function doLogout() {
+async function doLogout() {
+  if (hasChanges) {
+    const ok = confirm('저장하지 않은 변경사항이 있습니다.\n저장 후 로그아웃 할까요?\n\n확인 → 저장 후 로그아웃\n취소 → 그냥 로그아웃 (변경사항 삭제)');
+    if (ok) await saveAll();
+  }
   sessionStorage.removeItem('thinkup_subject');
   currentSubject = null;
   currentTeacher = null;
@@ -645,7 +649,7 @@ function renderCard(slot, dayCode, time, idx) {
 // ── SLOT MANAGEMENT ───────────────────────────────────────────────────────
 
 function deleteSlot(dayCode, time, idx) {
-  const slots = ttData[dayCode].filter(s => s.time === time);
+  const slots = ttData[dayCode].filter(s => s.time === time && s.teacher === currentTeacher);
   const target = slots[idx];
   const globalIdx = ttData[dayCode].indexOf(target);
   if (globalIdx === -1) return;
@@ -812,7 +816,7 @@ async function saveAll() {
     for (const d of DAYS) {
       for (const slot of (ttData[d.code] || [])) {
         for (const s of (slot.students || [])) {
-          if (s.code) allStudents[s.code] = { name: s.name, code: s.code, grade: s.grade || '' };
+          if (s.code) allStudents[s.code] = { name: s.name, studentName: s.name, code: s.code, grade: s.grade || '' };
         }
       }
     }
