@@ -345,8 +345,10 @@
     </div>
 
     <div class="field-group">
-      <div class="field-label">선생님 이름</div>
-      <input class="field-input" id="modalTeacher" placeholder="선생님 이름 입력">
+      <div class="field-label">선생님 선택</div>
+      <select class="field-input" id="modalTeacher">
+        <option value="">선생님을 선택하세요</option>
+      </select>
     </div>
 
     <div class="field-group">
@@ -415,11 +417,16 @@
 // ── CONSTANTS ─────────────────────────────────────────────────────────────
 
 const SUBJECTS = [
-  {key:'korean',  name:'국어', code:'1111', color:'#3b82f6', light:'#eff6ff'},
-  {key:'english', name:'영어', code:'2222', color:'#22c55e', light:'#f0fdf4'},
-  {key:'math',    name:'수학', code:'3333', color:'#a855f7', light:'#faf5ff'},
-  {key:'science', name:'과학', code:'4444', color:'#14b8a6', light:'#f0fdfa'},
-  {key:'history', name:'역사', code:'5555', color:'#f97316', light:'#fff7ed'},
+  {key:'korean',  name:'국어', code:'1111', color:'#3b82f6', light:'#eff6ff',
+   teachers:['설쌤','철원쌤','소진쌤']},
+  {key:'english', name:'영어', code:'2222', color:'#22c55e', light:'#f0fdf4',
+   teachers:['주민쌤','문쌤','박쌤','경미쌤','오쌤']},
+  {key:'math',    name:'수학', code:'3333', color:'#a855f7', light:'#faf5ff',
+   teachers:['강쌤','민규쌤','의현쌤']},
+  {key:'science', name:'과학', code:'4444', color:'#14b8a6', light:'#f0fdfa',
+   teachers:['선엽쌤','신쌤']},
+  {key:'history', name:'역사', code:'5555', color:'#f97316', light:'#fff7ed',
+   teachers:['역사1','역사2','역사3','역사4']},
 ];
 
 const TIME_SLOTS = ['13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00'];
@@ -589,17 +596,22 @@ function openClassModal(dayCode, time, existingIdx) {
   const dayLabel = DAYS.find(d => d.code === dayCode).label;
   let slot;
 
+  // 선생님 드롭다운 채우기
+  const teacherSel = document.getElementById('modalTeacher');
+  teacherSel.innerHTML = '<option value="">선생님을 선택하세요</option>' +
+    (currentSubject.teachers || []).map(t => `<option value="${t}">${t}</option>`).join('');
+
   if (existingIdx !== undefined) {
     const slots = ttData[dayCode].filter(s => s.time === time);
     slot = slots[existingIdx];
     modalState = { dayCode, time, globalIdx: ttData[dayCode].indexOf(slot), students: JSON.parse(JSON.stringify(slot.students || [])) };
     document.getElementById('modalTitle').textContent = '수업 편집';
-    document.getElementById('modalTeacher').value = slot.teacher || '';
+    teacherSel.value = slot.teacher || '';
     document.getElementById('modalTime').value = slot.time || time;
   } else {
     modalState = { dayCode, time, globalIdx: -1, students: [] };
     document.getElementById('modalTitle').textContent = '수업 추가';
-    document.getElementById('modalTeacher').value = '';
+    teacherSel.value = '';
     document.getElementById('modalTime').value = time;
   }
   document.getElementById('modalMeta').textContent =
@@ -610,7 +622,7 @@ function openClassModal(dayCode, time, existingIdx) {
   document.getElementById('stuCodePre').classList.remove('ready');
   renderModalStudents();
   document.getElementById('classModal').classList.add('open');
-  document.getElementById('modalTeacher').focus();
+  teacherSel.focus();
 }
 
 function closeClassModal() {
