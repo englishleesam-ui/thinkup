@@ -15,7 +15,43 @@
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: #f1f5f9; min-height: 100vh; }
 
-    /* 헤더 */
+    /* ── 로그인 화면 ── */
+    #loginScreen {
+      position: fixed; inset: 0; z-index: 999;
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem 1rem;
+    }
+    #loginScreen.hidden { display: none; }
+    .login-card {
+      background: white; border-radius: 20px;
+      padding: 2.5rem 2rem; width: 320px;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+      text-align: center;
+    }
+    .login-logo { font-size: 2.2rem; margin-bottom: 0.4rem; }
+    .login-title { font-size: 1.2rem; font-weight: 800; color: #1e3a5f; margin-bottom: 0.2rem; }
+    .login-sub { font-size: 0.78rem; color: #94a3b8; margin-bottom: 1.8rem; }
+    .login-field { margin-bottom: 1rem; text-align: left; }
+    .login-field label { display: block; font-size: 0.78rem; font-weight: 700; color: #4a5568; margin-bottom: 0.4rem; }
+    .login-field select, .login-field input {
+      width: 100%; padding: 11px 13px;
+      border: 2px solid #e2e8f0; border-radius: 10px;
+      font-size: 0.95rem; outline: none; background: white;
+      transition: border-color 0.2s;
+    }
+    .login-field input { text-align: center; letter-spacing: 0.3em; font-weight: 700; }
+    .login-field select:focus, .login-field input:focus { border-color: #3b82f6; }
+    .login-error { color: #ef4444; font-size: 0.8rem; min-height: 1.2rem; margin-bottom: 0.5rem; }
+    .btn-login {
+      width: 100%; padding: 11px;
+      background: linear-gradient(135deg, #1e3a5f, #2d6a9f);
+      color: white; border: none; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 700; cursor: pointer;
+    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── 헤더 ── */
     .header {
       background: #1e3a5f; color: white;
       padding: 1rem 1.2rem;
@@ -24,12 +60,13 @@
     }
     .header-info h1 { font-size: 1.05rem; font-weight: 700; }
     .header-info .sub { font-size: 0.78rem; opacity: 0.65; margin-top: 0.1rem; }
-    .back-btn {
+    .header-right { display: flex; gap: 0.5rem; align-items: center; }
+    .back-btn, .logout-btn {
       background: rgba(255,255,255,0.15); color: white;
       border: none; border-radius: 8px;
       padding: 0.4rem 0.9rem; cursor: pointer; font-size: 0.82rem;
-      display: none;
     }
+    .back-btn { display: none; }
 
     /* ── 선생님 선택 화면 ── */
     #selectPage { padding: 1.2rem 1rem; }
@@ -54,32 +91,18 @@
     .t-days { font-size: 0.78rem; color: #94a3b8; margin-top: 0.15rem; }
     .no-data { text-align: center; padding: 3rem 1rem; color: #94a3b8; font-size: 0.9rem; }
 
+    /* ── 오늘 날짜 바 ── */
+    .today-bar {
+      background: white; padding: 0.7rem 1.2rem;
+      font-size: 0.84rem; color: #64748b; font-weight: 600;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
     /* ── 메인 화면 ── */
     #mainPage { display: none; }
-
-    /* 요일 탭 */
-    .day-tab-bar {
-      background: white; padding: 0.6rem 1rem;
-      display: flex; gap: 0.4rem; overflow-x: auto;
-      border-bottom: 1px solid #f1f5f9;
-      scrollbar-width: none;
-    }
-    .day-tab-bar::-webkit-scrollbar { display: none; }
-    .day-tab {
-      flex-shrink: 0; padding: 0.45rem 1rem;
-      border-radius: 20px; border: 1.5px solid #e2e8f0;
-      background: white; cursor: pointer;
-      font-size: 0.85rem; color: #64748b; font-weight: 600;
-      transition: all 0.15s; white-space: nowrap;
-    }
-    .day-tab.today { border-color: #bfdbfe; color: #2563eb; }
-    .day-tab.active { background: #2563eb; color: white; border-color: #2563eb; }
-    .day-tab.active.sat { background: #7c3aed; border-color: #7c3aed; }
-
-    /* 탭 콘텐츠 */
     #tabContent { padding: 1rem; }
 
-    /* 오늘 뷰 — 3섹션 */
+    /* ── 오늘 뷰 3섹션 ── */
     .section-title {
       font-size: 0.78rem; font-weight: 700; color: #94a3b8;
       padding: 0.5rem 0 0.6rem; letter-spacing: 0.04em;
@@ -95,7 +118,7 @@
     .section-badge.out { background: #dbeafe; color: #2563eb; }
     .section-divider { height: 1px; background: #f1f5f9; margin: 0.5rem 0 0.9rem; }
 
-    /* 학생 카드 */
+    /* ── 학생 카드 ── */
     .student-card {
       background: white; border-radius: 12px;
       padding: 0.9rem 1.1rem; margin-bottom: 0.55rem;
@@ -120,32 +143,11 @@
     .s-dur { font-size: 0.8rem; font-weight: 600; color: #2563eb; }
     .s-dur.short { color: #ef4444; font-weight: 800; }
 
-    /* 학생 칩 (다른 요일) */
-    .chip-list { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 0.5rem 0; }
-    .chip {
-      padding: 0.4rem 0.9rem; border-radius: 20px;
-      font-size: 0.83rem; font-weight: 600;
-    }
-    .chip-coded   { background: #dbeafe; color: #1e40af; }
-    .chip-nocode  { background: #f1f5f9; color: #94a3b8; border: 1.5px dashed #cbd5e1; }
-    .chip .code   { font-size: 0.72rem; color: #93c5fd; margin-left: 0.25rem; font-weight: 400; }
-
-    .section-card {
-      background: white; border-radius: 12px;
-      padding: 1.1rem 1.2rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    .section-card h4 {
-      font-size: 0.82rem; color: #94a3b8; font-weight: 600;
-      margin-bottom: 0.8rem; padding-bottom: 0.6rem;
-      border-bottom: 1px solid #f1f5f9;
-    }
-
-    .empty-msg { text-align: center; padding: 2.5rem 1rem; color: #94a3b8; font-size: 0.88rem; }
+    .empty-msg { text-align: center; padding: 1.5rem 1rem; color: #94a3b8; font-size: 0.88rem; }
     .off-day { text-align: center; padding: 3rem 1rem; color: #94a3b8; }
     .off-day .icon { font-size: 2.5rem; margin-bottom: 0.8rem; }
 
-    /* 상세 모달 */
+    /* ── 상세 모달 ── */
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.4);
       display: none; align-items: flex-end; justify-content: center; z-index: 100;
@@ -170,31 +172,57 @@
 </head>
 <body>
 
+<!-- ── 로그인 화면 ── -->
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-logo">👨‍🏫</div>
+    <div class="login-title">ThinkUp 선생님</div>
+    <p class="login-sub">과목을 선택하고 비밀번호를 입력하세요</p>
+    <div class="login-field">
+      <label>과목 선택</label>
+      <select id="subjectSelect" onchange="onSubjectChange()">
+        <option value="">과목을 선택하세요</option>
+      </select>
+    </div>
+    <div class="login-field" id="pwField" style="display:none; animation:fadeIn 0.25s ease;">
+      <label id="pwLabel">비밀번호</label>
+      <input type="password" id="codeInput" placeholder="• • • •" maxlength="4"
+             onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <button class="btn-login" id="loginBtn" onclick="doLogin()" style="display:none">입장하기</button>
+  </div>
+</div>
+
+<!-- ── 헤더 ── -->
 <div class="header">
   <div class="header-info">
     <h1 id="headerTitle">ThinkUp 선생님</h1>
     <div class="sub" id="headerSub"></div>
   </div>
-  <button class="back-btn" id="backBtn" onclick="goBack()">← 선생님 선택</button>
+  <div class="header-right">
+    <button class="back-btn" id="backBtn" onclick="goBack()">← 선생님 선택</button>
+    <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+  </div>
 </div>
 
-<!-- 선생님 선택 -->
+<!-- ── 선생님 선택 ── -->
 <div id="selectPage">
-  <div style="padding: 1.2rem 1rem 0">
+  <div style="padding:1.2rem 1rem 0">
     <p class="page-title" id="selectTitle">선생님을 선택하세요</p>
   </div>
-  <div style="padding: 0 1rem" id="teacherList">
+  <div style="padding:0 1rem" id="teacherList">
     <div class="no-data">불러오는 중...</div>
   </div>
 </div>
 
-<!-- 메인 화면 -->
+<!-- ── 메인 화면 ── -->
 <div id="mainPage">
-  <div class="day-tab-bar" id="dayTabBar"></div>
+  <div class="today-bar" id="todayBar"></div>
   <div id="tabContent"></div>
 </div>
 
-<!-- 모달 -->
+<!-- ── 모달 ── -->
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -208,62 +236,134 @@
 </div>
 
 <script>
-const DAYS_KR_MAP = { mon:'월', tue:'화', wed:'수', thu:'목', fri:'금', sat:'토' };
-const DAY_LABEL   = { mon:'월요일', tue:'화요일', wed:'수요일', thu:'목요일', fri:'금요일', sat:'토요일' };
-const DAY_ORDER   = ['mon','tue','wed','thu','fri','sat'];
-const JS_DAY_CODE = ['sun','mon','tue','wed','thu','fri','sat'];
+// ── 과목 정의 (admin/timetable.html과 동일) ─────────────────────────────────
+const SUBJECTS = [
+  {key:'korean',  name:'국어', code:'1111', teachers:['설쌤','철원쌤','소진쌤']},
+  {key:'english', name:'영어', code:'2222', teachers:['주민쌤','문쌤','박쌤','경미쌤','오쌤']},
+  {key:'math',    name:'수학', code:'3333', teachers:['강쌤','민규쌤','의현쌤']},
+  {key:'science', name:'과학', code:'4444', teachers:['선엽쌤','신쌤']},
+  {key:'history', name:'역사', code:'5555', teachers:['역사1','역사2','역사3','역사4']},
+];
 
-const now       = new Date();
-const todayCode = JS_DAY_CODE[now.getDay()];
-const todayStr  = now.toISOString().split('T')[0];
-const dateLabel = `${now.getMonth()+1}월 ${now.getDate()}일 (${DAYS_KR_MAP[todayCode] || ''}요일)`;
+const DAY_CODES  = ['mon','tue','wed','thu','fri','sat'];
+const DAY_KR     = {mon:'월',tue:'화',wed:'수',thu:'목',fri:'금',sat:'토'};
+const DAY_LABEL  = {mon:'월요일',tue:'화요일',wed:'수요일',thu:'목요일',fri:'금요일',sat:'토요일'};
+const JS_DAY_MAP = ['sun','mon','tue','wed','thu','fri','sat'];
+
+const now        = new Date();
+const todayCode  = JS_DAY_MAP[now.getDay()];
+const todayStr   = now.toISOString().split('T')[0];
+const dateLabel  = `${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일)`;
+
+// ── 상태 ─────────────────────────────────────────────────────────────────────
+let currentSubject = null;
+let currentTeacher = null;
+let allSchedule    = {};
+let attendanceData = {};
+let unsubscribe    = null;
 
 document.getElementById('headerSub').textContent = dateLabel;
 
-let allSchedule    = {};   // dayCode -> { day, teachers:[{name, students}] }
-let currentTeacher = null;
-let currentDay     = null;
-let currentStatus  = 'pending';
-let attendanceData = {};   // code -> {checkIn, checkOut, durationMinutes}
-let unsubscribe    = null;
+// ── 과목 드롭다운 채우기 ─────────────────────────────────────────────────────
+document.getElementById('subjectSelect').innerHTML =
+  '<option value="">과목을 선택하세요</option>' +
+  SUBJECTS.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 
-function fmt(min) {
-  if (!min) return '-';
-  const h = Math.floor(min/60), m = min%60;
-  return h ? (m ? `${h}시간 ${m}분` : `${h}시간`) : `${m}분`;
+// ── 로그인 ────────────────────────────────────────────────────────────────────
+function onSubjectChange() {
+  const sel = document.getElementById('subjectSelect').value;
+  const pw  = document.getElementById('pwField');
+  const btn = document.getElementById('loginBtn');
+  const inp = document.getElementById('codeInput');
+  if (sel) {
+    document.getElementById('pwLabel').textContent = sel + ' 비밀번호';
+    pw.style.display = 'block';
+    btn.style.display = 'block';
+    inp.value = '';
+    document.getElementById('loginError').textContent = '';
+    setTimeout(() => inp.focus(), 50);
+  } else {
+    pw.style.display = 'none';
+    btn.style.display = 'none';
+  }
 }
 
-// ── 전체 스케줄 로드 ──
-async function init() {
+function doLogin() {
+  const selName = document.getElementById('subjectSelect').value;
+  const pw      = document.getElementById('codeInput').value.trim();
+  if (!selName) { document.getElementById('loginError').textContent = '과목을 선택해주세요.'; return; }
+  const sub = SUBJECTS.find(s => s.name === selName);
+  if (!sub || pw !== sub.code) {
+    document.getElementById('loginError').textContent = '코드가 맞지 않습니다.';
+    return;
+  }
+  currentSubject = sub;
+  sessionStorage.setItem('thinkup_teacher_subject', sub.key);
+  document.getElementById('loginScreen').classList.add('hidden');
+  loadSchedulesAndShow();
+}
+
+function doLogout() {
+  if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  sessionStorage.removeItem('thinkup_teacher_subject');
+  currentSubject = null;
+  currentTeacher = null;
+  allSchedule    = {};
+  attendanceData = {};
+  document.getElementById('backBtn').style.display = 'none';
+  document.getElementById('headerTitle').textContent = 'ThinkUp 선생님';
+  document.getElementById('mainPage').style.display = 'none';
+  document.getElementById('selectPage').style.display = 'block';
+  document.getElementById('teacherList').innerHTML = '<div class="no-data">불러오는 중...</div>';
+  document.getElementById('subjectSelect').value = '';
+  document.getElementById('pwField').style.display = 'none';
+  document.getElementById('loginBtn').style.display = 'none';
+  document.getElementById('codeInput').value = '';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginScreen').classList.remove('hidden');
+}
+
+// ── 세션 복원 ─────────────────────────────────────────────────────────────────
+(function resumeSession() {
+  const key = sessionStorage.getItem('thinkup_teacher_subject');
+  if (!key) return;
+  const sub = SUBJECTS.find(s => s.key === key);
+  if (!sub) return;
+  currentSubject = sub;
+  document.getElementById('subjectSelect').value = sub.name;
+  onSubjectChange();
+  document.getElementById('codeInput').value = sub.code;
+  document.getElementById('loginScreen').classList.add('hidden');
+  loadSchedulesAndShow();
+})();
+
+// ── 스케줄 로드 ───────────────────────────────────────────────────────────────
+async function loadSchedulesAndShow() {
   try {
-    for (const dc of DAY_ORDER) {
+    for (const dc of DAY_CODES) {
       const doc = await db.collection('schedules').doc(dc).get();
       if (doc.exists) allSchedule[dc] = doc.data();
     }
-    renderTeacherList();
   } catch(e) {
     document.getElementById('teacherList').innerHTML =
       `<div class="no-data" style="color:#ef4444">오류: ${e.message}</div>`;
-  }
-}
-
-// ── 선생님 목록 렌더 ──
-function renderTeacherList() {
-  const names = new Set();
-  Object.values(allSchedule).forEach(d => d.teachers.forEach(t => names.add(t.name)));
-
-  const list = document.getElementById('teacherList');
-  if (!names.size) {
-    list.innerHTML = '<div class="no-data">등록된 선생님이 없습니다.<br>먼저 관리자 페이지에서 시간표를 등록해주세요.</div>';
     return;
   }
+  renderTeacherList();
+}
+
+// ── 선생님 목록 렌더 (과목 필터) ─────────────────────────────────────────────
+function renderTeacherList() {
+  document.getElementById('selectTitle').textContent =
+    `${currentSubject.name} 선생님을 선택하세요`;
+
+  const list = document.getElementById('teacherList');
   list.innerHTML = '';
-  [...names].sort().forEach(name => {
-    const myDays = DAY_ORDER.filter(dc => allSchedule[dc]?.teachers.some(t => t.name === name));
-    const dayStr = myDays.map(dc => DAYS_KR_MAP[dc]).join(' · ') + '요일';
-    const totalStudents = new Set(
-      myDays.flatMap(dc => allSchedule[dc].teachers.find(t=>t.name===name)?.students.map(s=>s.code)||[])
-    ).size;
+
+  currentSubject.teachers.forEach(name => {
+    // 오늘 담당 학생 수 계산
+    const todaySlots = (allSchedule[todayCode]?.teachers || []).filter(t => t.name === name);
+    const todayCount = new Set(todaySlots.flatMap(t => (t.students||[]).map(s=>s.code))).size;
 
     const btn = document.createElement('button');
     btn.className = 'teacher-btn';
@@ -271,7 +371,7 @@ function renderTeacherList() {
       <div class="t-avatar">👨‍🏫</div>
       <div>
         <div class="t-name">${name} 선생님</div>
-        <div class="t-days">${dayStr} · 담당 ${totalStudents}명</div>
+        <div class="t-days">오늘 담당 ${todayCount}명</div>
       </div>
     `;
     btn.onclick = () => selectTeacher(name);
@@ -279,85 +379,55 @@ function renderTeacherList() {
   });
 }
 
-// ── 선생님 선택 ──
+// ── 선생님 선택 ───────────────────────────────────────────────────────────────
 function selectTeacher(name) {
   currentTeacher = name;
-  currentStatus  = 'pending';
-
-  // 이 선생님이 수업하는 요일만
-  const myDays = DAY_ORDER.filter(dc => allSchedule[dc]?.teachers.some(t => t.name === name));
-
-  // 기본 요일: 오늘(내가 수업하면) 아니면 첫 번째 요일
-  currentDay = myDays.includes(todayCode) ? todayCode : (myDays[0] || DAY_ORDER[0]);
-
   document.getElementById('headerTitle').textContent = `${name} 선생님`;
   document.getElementById('backBtn').style.display = 'block';
   document.getElementById('selectPage').style.display = 'none';
   document.getElementById('mainPage').style.display = 'block';
-
-  renderDayTabs(myDays);
-  loadDayContent();
+  document.getElementById('todayBar').textContent =
+    `📅 ${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일) · 오늘 수업`;
+  loadTodayContent();
 }
 
-// ── 뒤로가기 ──
+// ── 뒤로가기 ─────────────────────────────────────────────────────────────────
 function goBack() {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   currentTeacher = null;
+  attendanceData = {};
   document.getElementById('backBtn').style.display = 'none';
   document.getElementById('headerTitle').textContent = 'ThinkUp 선생님';
   document.getElementById('mainPage').style.display = 'none';
   document.getElementById('selectPage').style.display = 'block';
 }
 
-// ── 요일 탭 렌더 ──
-function renderDayTabs(myDays) {
-  const bar = document.getElementById('dayTabBar');
-  bar.innerHTML = '';
-  myDays.forEach(dc => {
-    const isToday = dc === todayCode;
-    const btn = document.createElement('button');
-    btn.className = 'day-tab' + (isToday ? ' today' : '') + (dc === 'sat' ? ' sat' : '') + (dc === currentDay ? ' active' : '');
-    btn.textContent = DAY_LABEL[dc] + (isToday ? ' (오늘)' : '');
-    btn.id = 'daytab-' + dc;
-    btn.onclick = () => switchDay(dc);
-    bar.appendChild(btn);
+// ── 오늘 수업 콘텐츠 로드 ─────────────────────────────────────────────────────
+function loadTodayContent() {
+  const dayData = allSchedule[todayCode];
+  const teacherSlots = (dayData?.teachers || []).filter(t => t.name === currentTeacher);
+  const studentMap = new Map();
+  teacherSlots.flatMap(t => t.students || []).forEach(s => {
+    if (s.code && !studentMap.has(s.code)) studentMap.set(s.code, s);
   });
-}
+  const students = [...studentMap.values()];
 
-// ── 요일 전환 ──
-function switchDay(dc) {
-  currentDay    = dc;
-  currentStatus = 'pending';
-  document.querySelectorAll('.day-tab').forEach(b => b.classList.remove('active'));
-  const tab = document.getElementById('daytab-' + dc);
-  if (tab) tab.classList.add('active');
-  if (unsubscribe) { unsubscribe(); unsubscribe = null; }
-  loadDayContent();
-}
-
-// ── 요일별 콘텐츠 ──
-function loadDayContent() {
-  const dayData = allSchedule[currentDay];
-  const teacher = dayData?.teachers.find(t => t.name === currentTeacher);
-
-  if (!teacher || !teacher.students.length) {
+  if (!students.length) {
     document.getElementById('tabContent').innerHTML =
-      `<div class="off-day"><div class="icon">📅</div>${DAY_LABEL[currentDay]}에 수업이 없습니다.</div>`;
+      `<div class="off-day"><div class="icon">📅</div>오늘은 수업이 없습니다.</div>`;
     return;
   }
 
-  if (currentDay === todayCode) {
-    renderTodayView(teacher.students);
-    startAttendanceListener(teacher.students);
-  } else {
-    renderOtherDayView(teacher.students);
-  }
-}
-
-// ── 오늘 뷰: 3섹션 동시 표시 ──
-function renderTodayView(students) {
   document.getElementById('tabContent').innerHTML = '<div id="allSections"></div>';
   renderAllSections(students);
+  startAttendanceListener(students);
+}
+
+// ── 3섹션 렌더 ────────────────────────────────────────────────────────────────
+function fmt(min) {
+  if (!min && min !== 0) return '-';
+  const h = Math.floor(min/60), m = min%60;
+  return h ? (m ? `${h}시간 ${m}분` : `${h}시간`) : `${m}분`;
 }
 
 function renderAllSections(allStudents) {
@@ -367,9 +437,9 @@ function renderAllSections(allStudents) {
   const pending = [], checkedIn = [], checkedOut = [];
   allStudents.forEach(s => {
     const att = attendanceData[s.code];
-    if (!att?.checkIn)       pending.push({ ...s, att });
-    else if (!att.checkOut)  checkedIn.push({ ...s, att });
-    else                     checkedOut.push({ ...s, att });
+    if (!att?.checkIn)      pending.push({...s, att});
+    else if (!att.checkOut) checkedIn.push({...s, att});
+    else                    checkedOut.push({...s, att});
   });
 
   const cardPending = pending.map(s => `
@@ -378,7 +448,7 @@ function renderAllSections(allStudents) {
         <div class="s-avatar av-pending">${s.name[0]}</div>
         <div><div class="s-name">${s.name}</div><div class="s-code">${s.code}</div></div>
       </div>
-    </div>`).join('') || '<div class="empty-msg" style="padding:1rem 0">모든 학생이 입실했습니다 ✅</div>';
+    </div>`).join('') || '<div class="empty-msg">모든 학생이 입실했습니다 ✅</div>';
 
   const cardIn = checkedIn.map(s => `
     <div class="student-card" onclick="showModal('${s.code}','${s.name}')">
@@ -387,12 +457,11 @@ function renderAllSections(allStudents) {
         <div><div class="s-name">${s.name}</div><div class="s-code">${s.code}</div></div>
       </div>
       <div class="s-time">입실<strong>${s.att?.checkIn || '-'}</strong></div>
-    </div>`).join('') || '<div class="empty-msg" style="padding:1rem 0">입실한 학생이 없습니다</div>';
+    </div>`).join('') || '<div class="empty-msg">입실한 학생이 없습니다</div>';
 
   const cardOut = checkedOut.map(s => {
     const dur = s.att?.durationMinutes;
-    const short = dur !== null && dur !== undefined && dur < 90;
-    const durStr = dur != null ? fmt(dur) : '-';
+    const short = dur != null && dur < 90;
     return `
     <div class="student-card" onclick="showModal('${s.code}','${s.name}')">
       <div class="s-left">
@@ -401,10 +470,10 @@ function renderAllSections(allStudents) {
       </div>
       <div class="s-time">
         <strong>${s.att?.checkOut || '-'}</strong>
-        <span class="s-dur${short ? ' short' : ''}">(${durStr})</span>
+        <span class="s-dur${short?' short':''}">(${fmt(dur)})</span>
       </div>
     </div>`;
-  }).join('') || '<div class="empty-msg" style="padding:1rem 0">퇴실한 학생이 없습니다</div>';
+  }).join('') || '<div class="empty-msg">퇴실한 학생이 없습니다</div>';
 
   el.innerHTML = `
     <div class="section-title">수업할 학생 <span class="section-badge">${pending.length}</span></div>
@@ -418,23 +487,7 @@ function renderAllSections(allStudents) {
   `;
 }
 
-// ── 다른 요일 탭: 학생 칩 목록 ──
-function renderOtherDayView(students) {
-  const el = document.getElementById('tabContent');
-  const chips = students.map(s => s.code
-    ? `<span class="chip chip-coded">${s.name}<span class="code">(${s.code})</span></span>`
-    : `<span class="chip chip-nocode">${s.name}</span>`
-  ).join('');
-
-  el.innerHTML = `
-    <div class="section-card">
-      <h4>${DAY_LABEL[currentDay]} 담당 학생 ${students.length}명</h4>
-      <div class="chip-list">${chips}</div>
-    </div>
-  `;
-}
-
-// ── 실시간 출결 감지 (오늘만) ──
+// ── 실시간 출결 감지 ──────────────────────────────────────────────────────────
 function startAttendanceListener(students) {
   if (unsubscribe) unsubscribe();
   attendanceData = {};
@@ -446,22 +499,19 @@ function startAttendanceListener(students) {
     });
 }
 
-// ── 모달 ──
+// ── 모달 ─────────────────────────────────────────────────────────────────────
 function showModal(code, name) {
-  if (currentDay !== todayCode) return;
   const att = attendanceData[code];
   document.getElementById('modalName').textContent = name + ' 학생';
   document.getElementById('mCode').textContent = code;
   document.getElementById('mIn').textContent   = att?.checkIn  || '-';
   document.getElementById('mOut').textContent  = att?.checkOut || '-';
-  document.getElementById('mDur').textContent  = att?.durationMinutes ? fmt(att.durationMinutes) : '-';
+  document.getElementById('mDur').textContent  = att?.durationMinutes != null ? fmt(att.durationMinutes) : '-';
   document.getElementById('modalOverlay').classList.add('open');
 }
 function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
-
-init();
 </script>
 </body>
 </html>
