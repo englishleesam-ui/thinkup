@@ -281,7 +281,9 @@
     }
     .btn-add-stu:hover { background: #1d4ed8; }
 
-    .modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding-top: 6px; border-top: 1px solid #f1f5f9; }
+    .modal-footer { display: flex; align-items: center; gap: 8px; padding-top: 6px; border-top: 1px solid #f1f5f9; }
+    .btn-copy-slot { padding: 9px 16px; background: #fef3c7; color: #d97706; border: 1.5px solid #fcd34d; border-radius: 8px; font-size: 0.84rem; font-weight: 700; cursor: pointer; }
+    .btn-copy-slot:hover { background: #fde68a; }
     .btn-cancel { padding: 9px 18px; background: #e2e8f0; color: #4a5568; border: none; border-radius: 8px; font-size: 0.84rem; font-weight: 700; cursor: pointer; }
     .btn-cancel:hover { background: #cbd5e0; }
     .btn-confirm { padding: 9px 22px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 0.84rem; font-weight: 700; cursor: pointer; }
@@ -428,6 +430,8 @@
     </div>
 
     <div class="modal-footer">
+      <button class="btn-copy-slot" id="btnCopySlot" onclick="copyFromModal()" style="display:none">📋 슬롯 복사</button>
+      <div style="flex:1"></div>
       <button class="btn-cancel" onclick="closeClassModal()">취소</button>
       <button class="btn-confirm" onclick="confirmClassModal()">확인</button>
     </div>
@@ -558,6 +562,14 @@ function startCopyMode(dayCode, time, idx) {
 function exitCopyMode() {
   copyBuffer = null;
   document.getElementById('pasteBanner').classList.remove('active');
+  renderGrid();
+}
+function copyFromModal() {
+  if (!modalState || modalState.globalIdx === -1) return;
+  const slot = ttData[modalState.dayCode][modalState.globalIdx];
+  copyBuffer = JSON.parse(JSON.stringify(slot));
+  closeClassModal();
+  document.getElementById('pasteBanner').classList.add('active');
   renderGrid();
 }
 function pasteToSlot(dayCode, time) {
@@ -788,10 +800,12 @@ function openClassModal(dayCode, time, existingIdx) {
     modalState = { dayCode, time, globalIdx: ttData[dayCode].indexOf(slot), students: JSON.parse(JSON.stringify(slot.students || [])) };
     document.getElementById('modalTitle').textContent = '수업 편집';
     document.getElementById('modalTime').value = slot.time || time;
+    document.getElementById('btnCopySlot').style.display = 'block';
   } else {
     modalState = { dayCode, time, globalIdx: -1, students: [] };
     document.getElementById('modalTitle').textContent = '수업 추가';
     document.getElementById('modalTime').value = time;
+    document.getElementById('btnCopySlot').style.display = 'none';
   }
   document.getElementById('modalMeta').textContent =
     `${dayLabel} ${time} · ${sub.name} · ${currentTeacher}`;
