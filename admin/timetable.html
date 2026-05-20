@@ -82,6 +82,18 @@
     .btn-tb.primary:hover { background: #1d4ed8; }
     .btn-tb.danger:hover { background: #fee2e2; border-color: #fca5a5; color: #c53030; }
 
+    .teacher-tabs {
+      display: flex; gap: 8px; padding: 10px 20px;
+      background: white; border-bottom: 1px solid #e2e8f0; flex-wrap: wrap;
+    }
+    .teacher-tab {
+      padding: 6px 18px; border-radius: 999px;
+      border: 2px solid #e2e8f0; background: white;
+      font-size: 0.84rem; font-weight: 700; cursor: pointer;
+      color: #4a5568; transition: all 0.15s; white-space: nowrap;
+    }
+    .teacher-tab.active { color: white; border-color: transparent; }
+
     /* ── MAIN CONTENT ── */
     .main-wrap { padding: 18px 16px 40px; }
 
@@ -333,6 +345,7 @@
     </div>
   </div>
 
+  <div id="teacherTabs" class="teacher-tabs" style="display:none"></div>
   <div class="main-wrap pb">
     <div class="table-scroll">
       <table class="tt" id="ttGrid"></table>
@@ -351,11 +364,9 @@
       <button class="modal-close" onclick="closeClassModal()">✕</button>
     </div>
 
-    <div class="field-group">
-      <div class="field-label">선생님 선택</div>
-      <select class="field-input" id="modalTeacher">
-        <option value="">선생님을 선택하세요</option>
-      </select>
+    <div class="field-group" id="teacherFieldGroup" style="display:none">
+      <div class="field-label">선생님</div>
+      <select class="field-input" id="modalTeacher"></select>
     </div>
 
     <div class="field-group">
@@ -457,6 +468,7 @@ const GRADES = [
 // ── STATE ──────────────────────────────────────────────────────────────────
 
 let currentSubject = null;  // SUBJECTS item
+let currentTeacher = null;  // teacher name string
 let ttData = {};            // dayCode → [ {time, teacher, students:[{name,grade,code}]} ]
 let modalState = null;      // {dayCode, time, slotIdx, students:[...]}
 let hasChanges = false;
@@ -471,6 +483,22 @@ document.getElementById('subjectSelect').innerHTML =
   SUBJECTS.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────
+
+function renderTeacherTabs() {
+  const tc = document.getElementById('teacherTabs');
+  tc.style.display = 'flex';
+  tc.innerHTML = currentSubject.teachers.map(t =>
+    `<button class="teacher-tab${t === currentTeacher ? ' active' : ''}"
+      style="${t === currentTeacher ? 'background:' + currentSubject.color + ';border-color:' + currentSubject.color : ''}"
+      onclick="switchTeacher('${t}')">${t}</button>`
+  ).join('');
+}
+
+function switchTeacher(name) {
+  currentTeacher = name;
+  renderTeacherTabs();
+  renderGrid();
+}
 
 function onSubjectChange() {
   const selName = document.getElementById('subjectSelect').value;
@@ -513,12 +541,17 @@ function doLogin() {
   document.getElementById('topbarSub').textContent =
     `슬롯을 클릭해 수업을 추가하세요 · ${sub.name} 시간표`;
   document.documentElement.style.setProperty('--sc', sub.color);
+  currentTeacher = sub.teachers[0];
+  renderTeacherTabs();
   loadData();
 }
 
 function doLogout() {
   sessionStorage.removeItem('thinkup_subject');
   currentSubject = null;
+  currentTeacher = null;
+  document.getElementById('teacherTabs').style.display = 'none';
+  document.getElementById('teacherTabs').innerHTML = '';
   DAYS.forEach(d => { ttData[d.code] = []; });
   hasChanges = false;
   document.getElementById('subjectSelect').value = '';
@@ -577,7 +610,7 @@ function renderGrid() {
   for (const time of TIME_SLOTS) {
     html += `<tr><td class="td-time">${time}</td>`;
     for (const d of DAYS) {
-      const slots = (ttData[d.code] || []).filter(s => s.time === time);
+      const slots = (ttData[d.code] || []).filter(s => s.time === time && s.teacher === currentTeacher);
       html += `<td class="td-slot ${d.sat ? 'sat-slot' : ''}">
         <div class="slot-inner">
           ${slots.map((slot, idx) => renderCard(slot, d.code, time, idx)).join('')}
@@ -629,33 +662,26 @@ function openClassModal(dayCode, time, existingIdx) {
   const dayLabel = DAYS.find(d => d.code === dayCode).label;
   let slot;
 
-  // 선생님 드롭다운 채우기
-  const teacherSel = document.getElementById('modalTeacher');
-  teacherSel.innerHTML = '<option value="">선생님을 선택하세요</option>' +
-    (currentSubject.teachers || []).map(t => `<option value="${t}">${t}</option>`).join('');
-
   if (existingIdx !== undefined) {
-    const slots = ttData[dayCode].filter(s => s.time === time);
+    const slots = ttData[dayCode].filter(s => s.time === time && s.teacher === currentTeacher);
     slot = slots[existingIdx];
     modalState = { dayCode, time, globalIdx: ttData[dayCode].indexOf(slot), students: JSON.parse(JSON.stringify(slot.students || [])) };
     document.getElementById('modalTitle').textContent = '수업 편집';
-    teacherSel.value = slot.teacher || '';
     document.getElementById('modalTime').value = slot.time || time;
   } else {
     modalState = { dayCode, time, globalIdx: -1, students: [] };
     document.getElementById('modalTitle').textContent = '수업 추가';
-    teacherSel.value = '';
     document.getElementById('modalTime').value = time;
   }
   document.getElementById('modalMeta').textContent =
-    `${dayLabel} ${time} · ${sub.name}`;
+    `${dayLabel} ${time} · ${sub.name} · ${currentTeacher}`;
   document.getElementById('addStuName').value = '';
   document.getElementById('addStuGrade').value = '';
   document.getElementById('stuCodePre').textContent = '—';
   document.getElementById('stuCodePre').classList.remove('ready');
   renderModalStudents();
   document.getElementById('classModal').classList.add('open');
-  teacherSel.focus();
+  document.getElementById('modalTime').focus();
 }
 
 function closeClassModal() {
@@ -745,9 +771,8 @@ function addStudentToModal() {
 }
 
 function confirmClassModal() {
-  const teacher = document.getElementById('modalTeacher').value.trim();
+  const teacher = currentTeacher;
   const time    = document.getElementById('modalTime').value.trim();
-  if (!teacher) { document.getElementById('modalTeacher').focus(); return; }
   if (!time)    { document.getElementById('modalTime').focus(); return; }
 
   const slotObj = {
