@@ -502,6 +502,8 @@ let dragState      = null;
 let ttData = {};
 let modalState = null;
 let hasChanges = false;
+let autoSaveTimer = null;
+const AUTO_SAVE_MS = 5 * 60 * 1000; // 5분
 
 // ── INIT ──────────────────────────────────────────────────────────────────
 
@@ -660,6 +662,7 @@ async function doLogout() {
     const ok = confirm('저장하지 않은 변경사항이 있습니다.\n저장 후 로그아웃 할까요?\n\n확인 → 저장 후 로그아웃\n취소 → 그냥 로그아웃 (변경사항 삭제)');
     if (ok) await saveAll();
   }
+  if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
   sessionStorage.removeItem('thinkup_subject');
   currentSubject = null;
   currentTeacher = null;
@@ -959,6 +962,7 @@ async function saveAll() {
     await regenerateSchedules();
 
     hasChanges = false;
+    if (autoSaveTimer) { clearTimeout(autoSaveTimer); autoSaveTimer = null; }
     setStatus(`✓ 저장 완료 — 코드 학생 ${Object.keys(allStudents).length}명`, '#10b981');
   } catch(e) {
     setStatus('저장 오류: ' + e.message, '#ef4444');
@@ -1028,7 +1032,16 @@ function openCodePrint() {
 
 function markChanged() {
   hasChanges = true;
-  setStatus('저장하지 않은 변경사항이 있습니다', '#f59e0b');
+  setStatus('변경사항 있음 · 5분 후 자동 저장', '#f59e0b');
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(autoSave, AUTO_SAVE_MS);
+}
+
+async function autoSave() {
+  autoSaveTimer = null;
+  if (!hasChanges) return;
+  await saveAll();
+  setStatus('✓ 자동 저장 완료', '#10b981');
 }
 
 function setStatus(msg, color) {
