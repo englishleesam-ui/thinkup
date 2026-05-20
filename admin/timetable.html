@@ -26,14 +26,15 @@
     .card-sub { font-size: 0.78rem; color: #718096; text-align: center; margin-bottom: 28px; }
     .login-field { margin-bottom: 16px; }
     .login-field label { display: block; font-size: 0.78rem; font-weight: 700; color: #4a5568; margin-bottom: 6px; }
-    .login-field input {
+    .login-field input, .login-field select {
       width: 100%; padding: 12px 14px;
       border: 2px solid #e2e8f0; border-radius: 10px;
-      font-size: 1rem; outline: none; text-align: center;
-      letter-spacing: 0.3em; font-weight: 700;
-      transition: border-color 0.2s;
+      font-size: 1rem; outline: none;
+      transition: border-color 0.2s; background: white;
     }
-    .login-field input:focus { border-color: #3b82f6; }
+    .login-field input { text-align: center; letter-spacing: 0.3em; font-weight: 700; }
+    .login-field select { text-align: left; color: #1a202c; cursor: pointer; }
+    .login-field input:focus, .login-field select:focus { border-color: #3b82f6; }
     .login-error { color: #e53e3e; font-size: 0.78rem; font-weight: 600; min-height: 18px; margin-bottom: 8px; text-align: center; }
     .btn-login-full {
       width: 100%; padding: 12px;
@@ -299,15 +300,20 @@
   <div class="login-card">
     <div class="card-logo">🗓️</div>
     <div class="card-title">ThinkUp 시간표</div>
-    <p class="card-sub">과목 담당 선생님 전용 · 코드 4자리 입력</p>
+    <p class="card-sub">과목을 선택하고 비밀번호를 입력하세요</p>
     <div class="login-field">
-      <label>과목 코드</label>
+      <label>과목 선택</label>
+      <select id="subjectSelect" onchange="document.getElementById('subjectCodeInput').focus()">
+        <option value="">과목을 선택하세요</option>
+      </select>
+    </div>
+    <div class="login-field">
+      <label>비밀번호</label>
       <input type="password" id="subjectCodeInput" placeholder="• • • •" maxlength="4"
              onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div class="login-error" id="loginError"></div>
     <button class="btn-login-full" onclick="doLogin()">입장하기</button>
-    <div class="subject-hints" id="subjectHints"></div>
     <div class="admin-link"><a href="./index.html">← 관리자 대시보드</a></div>
   </div>
 </div>
@@ -458,18 +464,22 @@ let hasChanges = false;
 
 DAYS.forEach(d => { ttData[d.code] = []; });
 
-// Build hint chips
-document.getElementById('subjectHints').innerHTML =
-  SUBJECTS.map(s =>
-    `<div class="hint-chip" style="background:${s.color}">${s.name} · ${s.code}</div>`
-  ).join('');
+// Populate subject dropdown
+document.getElementById('subjectSelect').innerHTML =
+  '<option value="">과목을 선택하세요</option>' +
+  SUBJECTS.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────
 
 function doLogin() {
-  const code = document.getElementById('subjectCodeInput').value.trim();
-  const sub = SUBJECTS.find(s => s.code === code);
-  if (!sub) {
+  const selName = document.getElementById('subjectSelect').value;
+  const pw = document.getElementById('subjectCodeInput').value.trim();
+  if (!selName) {
+    document.getElementById('loginError').textContent = '과목을 선택해주세요.';
+    return;
+  }
+  const sub = SUBJECTS.find(s => s.name === selName);
+  if (!sub || pw !== sub.code) {
     document.getElementById('loginError').textContent = '코드가 맞지 않습니다.';
     return;
   }
@@ -491,6 +501,7 @@ function doLogout() {
   currentSubject = null;
   DAYS.forEach(d => { ttData[d.code] = []; });
   hasChanges = false;
+  document.getElementById('subjectSelect').value = '';
   document.getElementById('subjectCodeInput').value = '';
   document.getElementById('loginError').textContent = '';
   document.getElementById('app').classList.remove('visible');
@@ -504,6 +515,7 @@ function doLogout() {
   if (savedKey) {
     const sub = SUBJECTS.find(s => s.key === savedKey);
     if (sub) {
+      document.getElementById('subjectSelect').value = sub.name;
       document.getElementById('subjectCodeInput').value = sub.code;
       doLogin();
     }
