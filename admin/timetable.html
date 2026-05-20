@@ -169,6 +169,28 @@
     }
     .class-card:hover .cc-del { opacity: 1; }
     .cc-del:hover { background: rgba(220,38,38,0.8) !important; }
+    .cc-copy {
+      position: absolute; top: 4px; right: 26px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: rgba(0,0,0,0.25); border: none; color: white;
+      font-size: 0.65rem; cursor: pointer; display: flex;
+      align-items: center; justify-content: center;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    .class-card:hover .cc-copy { opacity: 1; }
+    .cc-copy:hover { background: rgba(255,255,255,0.3) !important; }
+    .class-card[draggable="true"] { cursor: grab; }
+    .td-slot.drag-over { outline: 2.5px dashed var(--sc,#3b82f6) !important; background: rgba(59,130,246,0.06) !important; }
+    .paste-mode-banner {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 700;
+      background: #f59e0b; color: white; font-weight: 700;
+      padding: 10px 20px; display: none;
+      align-items: center; justify-content: space-between;
+      font-size: 0.88rem; box-shadow: 0 3px 12px rgba(0,0,0,0.2);
+    }
+    .paste-mode-banner.active { display: flex; }
+    .paste-cancel-btn { padding: 5px 14px; background: white; color: #d97706; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 0.84rem; }
+    .btn-slot-add.paste-mode { border-color: #f59e0b !important; color: #f59e0b !important; }
 
     /* ── MODAL ── */
     .modal-bg {
@@ -346,6 +368,10 @@
   </div>
 
   <div id="teacherTabs" class="teacher-tabs" style="display:none"></div>
+  <div class="paste-mode-banner" id="pasteBanner">
+    <span>📋 붙여넣을 슬롯의 <strong style="margin:0 3px">+</strong> 버튼을 누르세요</span>
+    <button class="paste-cancel-btn" onclick="exitCopyMode()">취소</button>
+  </div>
   <div class="main-wrap pb">
     <div class="table-scroll">
       <table class="tt" id="ttGrid"></table>
@@ -380,8 +406,10 @@
     <div class="add-stu-row">
       <div class="add-field">
         <label>이름</label>
-        <input class="add-name-in" id="addStuName" placeholder="학생 이름"
+        <input class="add-name-in" id="addStuName" list="stuNameList" placeholder="학생 이름"
+               oninput="onNameInput()"
                onkeydown="if(event.key==='Enter')document.getElementById('addStuGrade').focus()">
+        <datalist id="stuNameList"></datalist>
       </div>
       <div class="add-field">
         <label>학년</label>
@@ -467,10 +495,12 @@ const GRADES = [
 
 // ── STATE ──────────────────────────────────────────────────────────────────
 
-let currentSubject = null;  // SUBJECTS item
-let currentTeacher = null;  // teacher name string
-let ttData = {};            // dayCode → [ {time, teacher, students:[{name,grade,code}]} ]
-let modalState = null;      // {dayCode, time, slotIdx, students:[...]}
+let currentSubject = null;
+let currentTeacher = null;
+let copyBuffer     = null;
+let dragState      = null;
+let ttData = {};
+let modalState = null;
 let hasChanges = false;
 
 // ── INIT ──────────────────────────────────────────────────────────────────
@@ -483,6 +513,85 @@ document.getElementById('subjectSelect').innerHTML =
   SUBJECTS.map(s => `<option value="${s.name}">${s.name}</option>`).join('');
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────
+
+// ── DRAG & DROP ───────────────────────────────────────────────────────────
+function dragStart(event, dayCode, time, idx) {
+  dragState = { dayCode, time, idx };
+  event.dataTransfer.effectAllowed = 'move';
+}
+function dragOver(event) {
+  event.preventDefault();
+  event.currentTarget.classList.add('drag-over');
+}
+function dragLeave(event) {
+  event.currentTarget.classList.remove('drag-over');
+}
+function dropSlot(event, targetDay, targetTime) {
+  event.preventDefault();
+  event.currentTarget.classList.remove('drag-over');
+  if (!dragState) return;
+  const { dayCode: srcDay, time: srcTime, idx } = dragState;
+  dragState = null;
+  if (srcDay === targetDay && srcTime === targetTime) return;
+  const slots = ttData[srcDay].filter(s => s.time === srcTime && s.teacher === currentTeacher);
+  const slot = slots[idx];
+  if (!slot) return;
+  const gIdx = ttData[srcDay].indexOf(slot);
+  if (gIdx === -1) return;
+  ttData[srcDay].splice(gIdx, 1);
+  ttData[targetDay].push({ ...slot, time: targetTime });
+  markChanged();
+  renderGrid();
+}
+
+// ── COPY / PASTE ──────────────────────────────────────────────────────────
+function startCopyMode(dayCode, time, idx) {
+  const slots = ttData[dayCode].filter(s => s.time === time && s.teacher === currentTeacher);
+  const slot = slots[idx];
+  if (!slot) return;
+  copyBuffer = JSON.parse(JSON.stringify(slot));
+  document.getElementById('pasteBanner').classList.add('active');
+  renderGrid();
+}
+function exitCopyMode() {
+  copyBuffer = null;
+  document.getElementById('pasteBanner').classList.remove('active');
+  renderGrid();
+}
+function pasteToSlot(dayCode, time) {
+  if (!copyBuffer) return;
+  const newSlot = JSON.parse(JSON.stringify(copyBuffer));
+  newSlot.time = time;
+  newSlot.teacher = currentTeacher;
+  ttData[dayCode].push(newSlot);
+  markChanged();
+  renderGrid();
+  exitCopyMode();
+}
+
+// ── EXISTING STUDENT LOOKUP ───────────────────────────────────────────────
+function findExistingStudent(name) {
+  for (const d of DAYS) {
+    for (const slot of (ttData[d.code] || [])) {
+      const found = (slot.students || []).find(s => s.name === name && s.code);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+function onNameInput() {
+  const name = document.getElementById('addStuName').value.trim();
+  if (!name) { previewStuCode(); return; }
+  const existing = findExistingStudent(name);
+  if (existing) {
+    const pre = document.getElementById('stuCodePre');
+    pre.textContent = existing.code + ' (기존)';
+    pre.classList.add('ready');
+    if (existing.grade) document.getElementById('addStuGrade').value = existing.grade;
+  } else {
+    previewStuCode();
+  }
+}
 
 function renderTeacherTabs() {
   const tc = document.getElementById('teacherTabs');
@@ -615,11 +724,14 @@ function renderGrid() {
     html += `<tr><td class="td-time">${time}</td>`;
     for (const d of DAYS) {
       const slots = (ttData[d.code] || []).filter(s => s.time === time && s.teacher === currentTeacher);
-      html += `<td class="td-slot ${d.sat ? 'sat-slot' : ''}">
+      const addAction = copyBuffer ? `pasteToSlot('${d.code}','${time}')` : `openClassModal('${d.code}','${time}')`;
+      html += `<td class="td-slot ${d.sat ? 'sat-slot' : ''}"
+        ondragover="dragOver(event)" ondragleave="dragLeave(event)"
+        ondrop="dropSlot(event,'${d.code}','${time}')">
         <div class="slot-inner">
           ${slots.map((slot, idx) => renderCard(slot, d.code, time, idx)).join('')}
-          <button class="btn-slot-add" style="--sc:${sub.color}"
-                  onclick="openClassModal('${d.code}','${time}')">+</button>
+          <button class="btn-slot-add${copyBuffer ? ' paste-mode' : ''}" style="--sc:${sub.color}"
+                  onclick="${addAction}">${copyBuffer ? '📋' : '+'}</button>
         </div>
       </td>`;
     }
@@ -636,10 +748,11 @@ function renderCard(slot, dayCode, time, idx) {
   ).join('');
   const more = slot.students.length > 8 ? `<div class="card-more">+${slot.students.length - 8}명</div>` : '';
   return `
-    <div class="class-card" style="background:${sub.color}"
+    <div class="class-card" style="background:${sub.color}" draggable="true"
+         ondragstart="dragStart(event,'${dayCode}','${time}',${idx})"
          onclick="openClassModal('${dayCode}','${time}',${idx})">
-      <button class="cc-del"
-              onclick="event.stopPropagation();deleteSlot('${dayCode}','${time}',${idx})">✕</button>
+      <button class="cc-del" onclick="event.stopPropagation();deleteSlot('${dayCode}','${time}',${idx})">✕</button>
+      <button class="cc-copy" onclick="event.stopPropagation();startCopyMode('${dayCode}','${time}',${idx})" title="복사">📋</button>
       <div class="cc-teacher">${slot.teacher || '선생님 미정'}</div>
       <div class="cc-count">${slot.students.length}명</div>
       <div class="cc-names">${names}</div>${more}
@@ -679,6 +792,11 @@ function openClassModal(dayCode, time, existingIdx) {
   }
   document.getElementById('modalMeta').textContent =
     `${dayLabel} ${time} · ${sub.name} · ${currentTeacher}`;
+  // 기존 학생 이름 자동완성 목록 채우기
+  const allNames = new Set();
+  DAYS.forEach(d => (ttData[d.code]||[]).forEach(slot => (slot.students||[]).forEach(s => allNames.add(s.name))));
+  document.getElementById('stuNameList').innerHTML = [...allNames].map(n => `<option value="${n}">`).join('');
+
   document.getElementById('addStuName').value = '';
   document.getElementById('addStuGrade').value = '';
   document.getElementById('stuCodePre').textContent = '—';
@@ -759,13 +877,24 @@ function previewStuCode() {
 }
 
 function addStudentToModal() {
-  const name  = document.getElementById('addStuName').value.trim();
-  const grade = document.getElementById('addStuGrade').value;
-  if (!name)  { document.getElementById('addStuName').focus(); return; }
-  if (!grade) { document.getElementById('addStuGrade').focus(); return; }
-  const code = nextCode(grade);
-  if (!code)  { alert('해당 학년 코드가 모두 소진되었습니다.'); return; }
-  modalState.students.push({ name, grade, code });
+  const name = document.getElementById('addStuName').value.trim();
+  if (!name) { document.getElementById('addStuName').focus(); return; }
+  if (modalState.students.some(s => s.name === name)) {
+    alert('이미 추가된 학생입니다.'); return;
+  }
+
+  // 기존 학생이면 코드 자동 적용
+  const existing = findExistingStudent(name);
+  if (existing) {
+    modalState.students.push({ name, grade: existing.grade || '', code: existing.code });
+  } else {
+    const grade = document.getElementById('addStuGrade').value;
+    if (!grade) { document.getElementById('addStuGrade').focus(); return; }
+    const code = nextCode(grade);
+    if (!code) { alert('해당 학년 코드가 모두 소진되었습니다.'); return; }
+    modalState.students.push({ name, grade, code });
+  }
+
   document.getElementById('addStuName').value = '';
   document.getElementById('addStuGrade').value = '';
   document.getElementById('stuCodePre').textContent = '—';
