@@ -50,6 +50,7 @@
       font-weight: 700; text-align: center; color: white;
     }
     .admin-link { text-align: center; margin-top: 16px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
     .admin-link a { font-size: 0.75rem; color: #94a3b8; text-decoration: none; }
     .admin-link a:hover { color: #64748b; }
 
@@ -303,17 +304,17 @@
     <p class="card-sub">과목을 선택하고 비밀번호를 입력하세요</p>
     <div class="login-field">
       <label>과목 선택</label>
-      <select id="subjectSelect" onchange="document.getElementById('subjectCodeInput').focus()">
+      <select id="subjectSelect" onchange="onSubjectChange()">
         <option value="">과목을 선택하세요</option>
       </select>
     </div>
-    <div class="login-field">
-      <label>비밀번호</label>
+    <div class="login-field" id="pwField" style="display:none; animation: fadeIn 0.25s ease;">
+      <label id="pwLabel">비밀번호</label>
       <input type="password" id="subjectCodeInput" placeholder="• • • •" maxlength="4"
              onkeydown="if(event.key==='Enter')doLogin()">
     </div>
     <div class="login-error" id="loginError"></div>
-    <button class="btn-login-full" onclick="doLogin()">입장하기</button>
+    <button class="btn-login-full" id="loginBtn" onclick="doLogin()" style="display:none">입장하기</button>
     <div class="admin-link"><a href="./index.html">← 관리자 대시보드</a></div>
   </div>
 </div>
@@ -471,6 +472,25 @@ document.getElementById('subjectSelect').innerHTML =
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────
 
+function onSubjectChange() {
+  const selName = document.getElementById('subjectSelect').value;
+  const pwField = document.getElementById('pwField');
+  const loginBtn = document.getElementById('loginBtn');
+  const inp = document.getElementById('subjectCodeInput');
+  const err = document.getElementById('loginError');
+  if (selName) {
+    document.getElementById('pwLabel').textContent = selName + ' 비밀번호';
+    pwField.style.display = 'block';
+    loginBtn.style.display = 'block';
+    inp.value = '';
+    err.textContent = '';
+    setTimeout(() => inp.focus(), 50);
+  } else {
+    pwField.style.display = 'none';
+    loginBtn.style.display = 'none';
+  }
+}
+
 function doLogin() {
   const selName = document.getElementById('subjectSelect').value;
   const pw = document.getElementById('subjectCodeInput').value.trim();
@@ -516,6 +536,7 @@ function doLogout() {
     const sub = SUBJECTS.find(s => s.key === savedKey);
     if (sub) {
       document.getElementById('subjectSelect').value = sub.name;
+      onSubjectChange();
       document.getElementById('subjectCodeInput').value = sub.code;
       doLogin();
     }
