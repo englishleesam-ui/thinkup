@@ -322,6 +322,39 @@
     .btn-save-main:disabled { background: #94a3b8; cursor: not-allowed; }
     .pb { padding-bottom: 70px; }
 
+    /* ── DAY OVERVIEW MODAL ── */
+    #dayOverviewModal {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5); z-index: 600;
+      align-items: flex-start; justify-content: center;
+      padding: 2rem 1rem; overflow-y: auto;
+    }
+    #dayOverviewModal.open { display: flex; }
+    #dayOverviewModal .modal-box { max-width: 700px; }
+    .ov-teacher-section { margin-bottom: 20px; }
+    .ov-teacher-hd {
+      font-size: 0.9rem; font-weight: 800; color: white;
+      padding: 8px 14px; border-radius: 8px; margin-bottom: 8px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ov-slot-row {
+      display: flex; gap: 10px; align-items: flex-start;
+      padding: 8px 12px; background: #f8fafc;
+      border-radius: 8px; margin-bottom: 6px;
+      border-left: 3px solid var(--ov-color, #3b82f6);
+    }
+    .ov-time { font-size: 0.78rem; font-weight: 700; color: #4a5568; min-width: 48px; padding-top: 3px; }
+    .ov-students { display: flex; flex-wrap: wrap; gap: 4px; }
+    .ov-student-chip {
+      font-size: 0.75rem; background: #ede9fe; color: #6d28d9;
+      border-radius: 6px; padding: 2px 8px; font-weight: 600;
+    }
+    .ov-empty { color: #a0aec0; font-size: 0.82rem; text-align: center; padding: 10px 0; }
+    .ov-readonly-note {
+      font-size: 0.75rem; color: #94a3b8; text-align: center;
+      padding: 10px 0 0; border-top: 1px solid #f1f5f9; margin-top: 4px;
+    }
+
     @media print {
       body > *:not(#printModal) { display: none !important; }
       #printModal { display: block !important; position: static !important; background: none !important; padding: 0 !important; }
@@ -364,6 +397,7 @@
     </div>
     <div class="topbar-right">
       <span class="subject-badge" id="subjectBadge"></span>
+      <button class="btn-tb" id="btnDayOverview" onclick="openDayOverview()" style="display:none">📅 요일 전체보기</button>
       <button class="btn-tb" onclick="openCodePrint()">🖨 코드 출력</button>
       <button class="btn-tb danger" onclick="doLogout()">로그아웃</button>
     </div>
@@ -450,6 +484,21 @@
       </div>
     </div>
     <div id="printModalBody"></div>
+  </div>
+</div>
+
+<!-- ─── DAY OVERVIEW MODAL ─── -->
+<div id="dayOverviewModal">
+  <div class="modal-box">
+    <div class="modal-hd">
+      <div>
+        <h2 id="dayOverviewTitle"></h2>
+        <div class="meta" id="dayOverviewSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeDayOverview()">✕</button>
+    </div>
+    <div id="dayOverviewBody"></div>
+    <div class="ov-readonly-note">읽기 전용 — 이 화면에서는 데이터가 변경되지 않습니다</div>
   </div>
 </div>
 
@@ -685,6 +734,7 @@ function doLogin() {
   document.getElementById('subjectBadge').style.background = sub.color;
   document.getElementById('topbarSub').textContent =
     `슬롯을 클릭해 수업을 추가하세요 · ${sub.name} 시간표`;
+  document.getElementById('btnDayOverview').style.display = 'block';
   document.documentElement.style.setProperty('--sc', sub.color);
   currentTeacher = sub.teachers[0];
   const todayCode = ['sun','mon','tue','wed','thu','fri','sat'][new Date().getDay()];
@@ -704,6 +754,7 @@ async function doLogout() {
   currentSubject = null;
   currentTeacher = null;
   currentDay = null;
+  document.getElementById('btnDayOverview').style.display = 'none';
   document.getElementById('teacherTabs').style.display = 'none';
   document.getElementById('teacherTabs').innerHTML = '';
   document.getElementById('dayTabs').style.display = 'none';
@@ -1091,6 +1142,55 @@ function setStatus(msg, color) {
   el.style.color = color || '#64748b';
 }
 
+// ── DAY OVERVIEW ─────────────────────────────────────────────────────────
+
+function openDayOverview() {
+  const d = DAYS.find(day => day.code === currentDay) || DAYS[0];
+  const sub = currentSubject;
+  const daySlots = ttData[currentDay] || [];
+
+  document.getElementById('dayOverviewTitle').textContent = `${d.label} 전체 시간표`;
+  document.getElementById('dayOverviewSub').textContent = `${sub.name} · 전체 선생님`;
+
+  let html = '';
+  for (const teacher of sub.teachers) {
+    const teacherSlots = daySlots.filter(s => s.teacher === teacher);
+    const sorted = [...teacherSlots].sort((a, b) => a.time.localeCompare(b.time));
+    const totalStudents = sorted.reduce((acc, s) => acc + (s.students?.length || 0), 0);
+
+    html += `<div class="ov-teacher-section">
+      <div class="ov-teacher-hd" style="background:${sub.color}">
+        <span>${teacher}</span>
+        <span style="font-size:0.75rem;font-weight:600;opacity:0.85">총 ${totalStudents}명</span>
+      </div>`;
+
+    if (sorted.length === 0) {
+      html += `<div class="ov-empty">이 날 수업 없음</div>`;
+    } else {
+      for (const slot of sorted) {
+        const students = slot.students || [];
+        html += `<div class="ov-slot-row" style="--ov-color:${sub.color}">
+          <span class="ov-time">${slot.time}</span>
+          <div class="ov-students">
+            ${students.length
+              ? students.map(s => `<span class="ov-student-chip">${s.name}</span>`).join('')
+              : '<span style="color:#a0aec0;font-size:0.78rem">학생 없음</span>'}
+          </div>
+        </div>`;
+      }
+    }
+    html += '</div>';
+  }
+
+  document.getElementById('dayOverviewBody').innerHTML = html ||
+    '<div class="ov-empty">등록된 수업이 없습니다.</div>';
+  document.getElementById('dayOverviewModal').classList.add('open');
+}
+
+function closeDayOverview() {
+  document.getElementById('dayOverviewModal').classList.remove('open');
+}
+
 // close modals on backdrop click
 document.getElementById('classModal').addEventListener('click', e => {
   if (e.target === document.getElementById('classModal')) closeClassModal();
@@ -1098,6 +1198,9 @@ document.getElementById('classModal').addEventListener('click', e => {
 document.getElementById('printModal').addEventListener('click', e => {
   if (e.target === document.getElementById('printModal'))
     document.getElementById('printModal').classList.remove('open');
+});
+document.getElementById('dayOverviewModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('dayOverviewModal')) closeDayOverview();
 });
 </script>
 </body>
