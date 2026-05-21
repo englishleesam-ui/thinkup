@@ -327,32 +327,39 @@
       display: none; position: fixed; inset: 0;
       background: rgba(0,0,0,0.5); z-index: 600;
       align-items: flex-start; justify-content: center;
-      padding: 2rem 1rem; overflow-y: auto;
+      padding: 1.5rem 0.75rem; overflow-y: auto;
     }
     #dayOverviewModal.open { display: flex; }
-    #dayOverviewModal .modal-box { max-width: 700px; }
-    .ov-teacher-section { margin-bottom: 20px; }
-    .ov-teacher-hd {
-      font-size: 0.9rem; font-weight: 800; color: white;
-      padding: 8px 14px; border-radius: 8px; margin-bottom: 8px;
-      display: flex; align-items: center; justify-content: space-between;
+    #dayOverviewModal .modal-box { max-width: 92vw; width: 100%; }
+    .ov-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .ov-table th {
+      padding: 9px 8px; text-align: center; font-weight: 700;
+      position: sticky; top: 0; z-index: 1;
     }
-    .ov-slot-row {
-      display: flex; gap: 10px; align-items: flex-start;
-      padding: 8px 12px; background: #f8fafc;
-      border-radius: 8px; margin-bottom: 6px;
-      border-left: 3px solid var(--ov-color, #3b82f6);
+    .ov-th-grade { background: #2d3748; color: #e2e8f0; width: 52px; font-size: 0.75rem; }
+    .ov-th-teacher { color: white; min-width: 90px; }
+    .ov-table tbody tr { border-top: 1px solid #e2e8f0; }
+    .ov-td-grade {
+      padding: 8px 4px; background: #f7fafc; text-align: center;
+      font-size: 0.72rem; font-weight: 800; color: #4a5568;
+      border-right: 2px solid #e2e8f0; vertical-align: middle;
+      white-space: nowrap;
     }
-    .ov-time { font-size: 0.78rem; font-weight: 700; color: #4a5568; min-width: 48px; padding-top: 3px; }
-    .ov-students { display: flex; flex-wrap: wrap; gap: 4px; }
-    .ov-student-chip {
-      font-size: 0.75rem; background: #ede9fe; color: #6d28d9;
-      border-radius: 6px; padding: 2px 8px; font-weight: 600;
+    .ov-td-cell {
+      padding: 6px 8px; vertical-align: top; min-height: 40px;
     }
-    .ov-empty { color: #a0aec0; font-size: 0.82rem; text-align: center; padding: 10px 0; }
+    .ov-td-cell.has-data { background: var(--ov-light, #f8fafc); }
+    .ov-name {
+      display: block; font-size: 0.8rem; color: #1a202c;
+      white-space: nowrap; line-height: 1.8;
+    }
+    .ov-time-tag {
+      font-size: 0.67rem; color: #94a3b8; margin-left: 3px;
+    }
+    .ov-empty-cell { background: white; }
     .ov-readonly-note {
       font-size: 0.75rem; color: #94a3b8; text-align: center;
-      padding: 10px 0 0; border-top: 1px solid #f1f5f9; margin-top: 4px;
+      padding: 10px 0 0; border-top: 1px solid #f1f5f9; margin-top: 8px;
     }
 
     @media print {
@@ -1148,42 +1155,79 @@ function openDayOverview() {
   const d = DAYS.find(day => day.code === currentDay) || DAYS[0];
   const sub = currentSubject;
   const daySlots = ttData[currentDay] || [];
+  const teachers = sub.teachers;
 
   document.getElementById('dayOverviewTitle').textContent = `${d.label} 전체 시간표`;
-  document.getElementById('dayOverviewSub').textContent = `${sub.name} · 전체 선생님`;
+  document.getElementById('dayOverviewSub').textContent = `${sub.name} · 읽기 전용`;
 
-  let html = '';
-  for (const teacher of sub.teachers) {
-    const teacherSlots = daySlots.filter(s => s.teacher === teacher);
-    const sorted = [...teacherSlots].sort((a, b) => a.time.localeCompare(b.time));
-    const totalStudents = sorted.reduce((acc, s) => acc + (s.students?.length || 0), 0);
-
-    html += `<div class="ov-teacher-section">
-      <div class="ov-teacher-hd" style="background:${sub.color}">
-        <span>${teacher}</span>
-        <span style="font-size:0.75rem;font-weight:600;opacity:0.85">총 ${totalStudents}명</span>
-      </div>`;
-
-    if (sorted.length === 0) {
-      html += `<div class="ov-empty">이 날 수업 없음</div>`;
-    } else {
-      for (const slot of sorted) {
-        const students = slot.students || [];
-        html += `<div class="ov-slot-row" style="--ov-color:${sub.color}">
-          <span class="ov-time">${slot.time}</span>
-          <div class="ov-students">
-            ${students.length
-              ? students.map(s => `<span class="ov-student-chip">${s.name}</span>`).join('')
-              : '<span style="color:#a0aec0;font-size:0.78rem">학생 없음</span>'}
-          </div>
-        </div>`;
+  // teacher -> grade -> [{name, time}]
+  const teacherData = {};
+  for (const teacher of teachers) {
+    teacherData[teacher] = {};
+    for (const slot of daySlots.filter(s => s.teacher === teacher)) {
+      for (const stu of (slot.students || [])) {
+        const g = stu.grade || '?';
+        if (!teacherData[teacher][g]) teacherData[teacher][g] = [];
+        teacherData[teacher][g].push({ name: stu.name, time: slot.time });
       }
     }
-    html += '</div>';
   }
 
-  document.getElementById('dayOverviewBody').innerHTML = html ||
-    '<div class="ov-empty">등록된 수업이 없습니다.</div>';
+  // Collect all grades present, sorted by GRADES order
+  const presentGrades = new Set();
+  for (const t of teachers) Object.keys(teacherData[t]).forEach(g => presentGrades.add(g));
+  const gradeOrder = GRADES.map(g => g.key);
+  const sortedGrades = gradeOrder.filter(g => presentGrades.has(g));
+  if (presentGrades.has('?')) sortedGrades.push('?');
+
+  if (sortedGrades.length === 0) {
+    document.getElementById('dayOverviewBody').innerHTML =
+      '<p style="text-align:center;color:#94a3b8;padding:24px 0">이 날 등록된 학생이 없습니다.</p>';
+    document.getElementById('dayOverviewModal').classList.add('open');
+    return;
+  }
+
+  let html = `<div style="overflow-x:auto">
+    <table class="ov-table">
+      <thead><tr>
+        <th class="ov-th-grade">학년</th>
+        ${teachers.map(t => {
+          const total = Object.values(teacherData[t]).reduce((a, arr) => a + arr.length, 0);
+          return `<th class="ov-th-teacher" style="background:${sub.color}">${t}<br>
+            <span style="font-size:0.68rem;font-weight:500;opacity:0.85">${total}명</span></th>`;
+        }).join('')}
+      </tr></thead>
+      <tbody>`;
+
+  for (const grade of sortedGrades) {
+    html += `<tr>
+      <td class="ov-td-grade">${grade}</td>`;
+    for (const teacher of teachers) {
+      const students = teacherData[teacher][grade] || [];
+      const hasData = students.length > 0;
+      html += `<td class="ov-td-cell ${hasData ? 'has-data' : 'ov-empty-cell'}"
+               style="${hasData ? '--ov-light:' + sub.light : ''}">`;
+      if (hasData) {
+        // Group by time within this grade cell
+        const byTime = {};
+        students.forEach(s => {
+          if (!byTime[s.time]) byTime[s.time] = [];
+          byTime[s.time].push(s.name);
+        });
+        const times = Object.keys(byTime).sort();
+        for (const t of times) {
+          byTime[t].forEach(name => {
+            html += `<span class="ov-name">${name}<span class="ov-time-tag">${t}</span></span>`;
+          });
+        }
+      }
+      html += `</td>`;
+    }
+    html += `</tr>`;
+  }
+
+  html += `</tbody></table></div>`;
+  document.getElementById('dayOverviewBody').innerHTML = html;
   document.getElementById('dayOverviewModal').classList.add('open');
 }
 
