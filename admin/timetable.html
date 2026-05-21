@@ -370,6 +370,7 @@
   </div>
 
   <div id="teacherTabs" class="teacher-tabs" style="display:none"></div>
+  <div id="dayTabs" class="teacher-tabs" style="display:none; border-top:1px solid #f1f5f9; background:#fafbff;"></div>
   <div class="paste-mode-banner" id="pasteBanner">
     <span>📋 붙여넣을 슬롯의 <strong style="margin:0 3px">+</strong> 버튼을 누르세요</span>
     <button class="paste-cancel-btn" onclick="exitCopyMode()">취소</button>
@@ -501,6 +502,7 @@ const GRADES = [
 
 let currentSubject = null;
 let currentTeacher = null;
+let currentDay     = null;
 let copyBuffer     = null;
 let dragState      = null;
 let ttData = {};
@@ -623,6 +625,26 @@ function switchTeacher(name) {
   renderGrid();
 }
 
+function renderDayTabs() {
+  const dt = document.getElementById('dayTabs');
+  dt.style.display = 'flex';
+  const todayCode = ['sun','mon','tue','wed','thu','fri','sat'][new Date().getDay()];
+  dt.innerHTML = DAYS.map(d => {
+    const isToday = d.code === todayCode;
+    const isActive = d.code === currentDay;
+    const label = d.short + '요일' + (isToday ? ' (오늘)' : '');
+    return `<button class="teacher-tab${isActive ? ' active' : ''}"
+      style="${isActive ? 'background:' + currentSubject.color + ';border-color:' + currentSubject.color : (isToday ? 'border-color:#bfdbfe;color:#2563eb;' : '')}"
+      onclick="switchDay('${d.code}')">${label}</button>`;
+  }).join('');
+}
+
+function switchDay(code) {
+  currentDay = code;
+  renderDayTabs();
+  renderGrid();
+}
+
 function onSubjectChange() {
   const selName = document.getElementById('subjectSelect').value;
   const pwField = document.getElementById('pwField');
@@ -665,7 +687,10 @@ function doLogin() {
     `슬롯을 클릭해 수업을 추가하세요 · ${sub.name} 시간표`;
   document.documentElement.style.setProperty('--sc', sub.color);
   currentTeacher = sub.teachers[0];
+  const todayCode = ['sun','mon','tue','wed','thu','fri','sat'][new Date().getDay()];
+  currentDay = DAYS.some(d => d.code === todayCode) ? todayCode : 'mon';
   renderTeacherTabs();
+  renderDayTabs();
   loadData();
 }
 
@@ -678,8 +703,11 @@ async function doLogout() {
   sessionStorage.removeItem('thinkup_subject');
   currentSubject = null;
   currentTeacher = null;
+  currentDay = null;
   document.getElementById('teacherTabs').style.display = 'none';
   document.getElementById('teacherTabs').innerHTML = '';
+  document.getElementById('dayTabs').style.display = 'none';
+  document.getElementById('dayTabs').innerHTML = '';
   DAYS.forEach(d => { ttData[d.code] = []; });
   hasChanges = false;
   document.getElementById('subjectSelect').value = '';
@@ -728,29 +756,28 @@ async function loadData() {
 
 function renderGrid() {
   const sub = currentSubject;
+  const d = DAYS.find(day => day.code === currentDay) || DAYS[0];
+
   let html = `<thead><tr>
     <th class="th-time">시간</th>
-    ${DAYS.map(d =>
-      `<th class="${d.sat ? 'th-saturday' : 'th-weekday'}">${d.label}</th>`
-    ).join('')}
+    <th class="${d.sat ? 'th-saturday' : 'th-weekday'}" style="font-size:1rem">${d.label}</th>
   </tr></thead><tbody>`;
 
   for (const time of TIME_SLOTS) {
-    html += `<tr><td class="td-time">${time}</td>`;
-    for (const d of DAYS) {
-      const slots = (ttData[d.code] || []).filter(s => s.time === time && s.teacher === currentTeacher);
-      const addAction = copyBuffer ? `pasteToSlot('${d.code}','${time}')` : `openClassModal('${d.code}','${time}')`;
-      html += `<td class="td-slot ${d.sat ? 'sat-slot' : ''}"
-        ondragover="dragOver(event)" ondragleave="dragLeave(event)"
-        ondrop="dropSlot(event,'${d.code}','${time}')">
+    const slots = (ttData[d.code] || []).filter(s => s.time === time && s.teacher === currentTeacher);
+    const addAction = copyBuffer ? `pasteToSlot('${d.code}','${time}')` : `openClassModal('${d.code}','${time}')`;
+    html += `<tr>
+      <td class="td-time">${time}</td>
+      <td class="td-slot ${d.sat ? 'sat-slot' : ''}"
+          ondragover="dragOver(event)" ondragleave="dragLeave(event)"
+          ondrop="dropSlot(event,'${d.code}','${time}')">
         <div class="slot-inner">
           ${slots.map((slot, idx) => renderCard(slot, d.code, time, idx)).join('')}
           <button class="btn-slot-add${copyBuffer ? ' paste-mode' : ''}" style="--sc:${sub.color}"
                   onclick="${addAction}">${copyBuffer ? '📋' : '+'}</button>
         </div>
-      </td>`;
-    }
-    html += '</tr>';
+      </td>
+    </tr>`;
   }
   html += '</tbody>';
   document.getElementById('ttGrid').innerHTML = html;
