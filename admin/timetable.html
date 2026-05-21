@@ -1214,12 +1214,9 @@ function openDayOverview() {
           if (!byTime[s.time]) byTime[s.time] = [];
           byTime[s.time].push(s.name);
         });
-        const times = Object.keys(byTime).sort();
-        for (const t of times) {
-          byTime[t].forEach(name => {
-            html += `<span class="ov-name">${name}<span class="ov-time-tag">${t}</span></span>`;
-          });
-        }
+        students.forEach(s => {
+          html += `<span class="ov-name">${s.name}</span>`;
+        });
       }
       html += `</td>`;
     }
