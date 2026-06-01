@@ -461,7 +461,7 @@
           <option value="">학년</option>
           <optgroup label="초등"><option value="초3">초3</option><option value="초4">초4</option><option value="초5">초5</option><option value="초6">초6</option></optgroup>
           <optgroup label="중학교"><option value="중1">중1</option><option value="중2">중2</option><option value="중3">중3</option></optgroup>
-          <optgroup label="고등"><option value="고1">고1</option><option value="고2">고2</option></optgroup>
+          <optgroup label="고등"><option value="고1">고1</option><option value="고2">고2</option><option value="고3">고3</option></optgroup>
         </select>
       </div>
       <div class="add-field">
@@ -551,7 +551,7 @@ const GRADES = [
   {key:'초3', prefix:3, cls:'ge'}, {key:'초4', prefix:4, cls:'ge'},
   {key:'초5', prefix:5, cls:'ge'}, {key:'초6', prefix:6, cls:'ge'},
   {key:'중1', prefix:7, cls:'gm'}, {key:'중2', prefix:8, cls:'gm'}, {key:'중3', prefix:9, cls:'gm'},
-  {key:'고1', prefix:1, cls:'gh'}, {key:'고2', prefix:2, cls:'gh'},
+  {key:'고1', prefix:1, cls:'gh'}, {key:'고2', prefix:2, cls:'gh'}, {key:'고3', prefix:0, cls:'gh'},
 ];
 
 // ── STATE ──────────────────────────────────────────────────────────────────
@@ -565,6 +565,7 @@ let ttData = {};
 let modalState = null;
 let hasChanges = false;
 let autoSaveTimer = null;
+let studentRegistry = {};
 const AUTO_SAVE_MS = 5 * 60 * 1000; // 5분
 
 // ── INIT ──────────────────────────────────────────────────────────────────
@@ -643,6 +644,8 @@ function pasteToSlot(dayCode, time) {
 
 // ── EXISTING STUDENT LOOKUP ───────────────────────────────────────────────
 function findExistingStudent(name) {
+  const registered = Object.values(studentRegistry).find(s => s.name === name && s.code);
+  if (registered) return registered;
   for (const d of DAYS) {
     for (const slot of (ttData[d.code] || [])) {
       const found = (slot.students || []).find(s => s.name === name && s.code);
@@ -795,6 +798,13 @@ async function doLogout() {
 async function loadData() {
   setStatus('불러오는 중...');
   try {
+    studentRegistry = {};
+    const studentSnap = await db.collection('students').get();
+    studentSnap.forEach(doc => {
+      const student = doc.data();
+      const code = String(student.code || doc.id);
+      studentRegistry[code] = { ...student, code, name: student.name || student.studentName };
+    });
     for (const d of DAYS) {
       const doc = await db.collection('timetable').doc(`${currentSubject.key}_${d.code}`).get();
       if (doc.exists) {
@@ -940,7 +950,7 @@ function removeStudentFromModal(idx) {
 // ── CODE AUTO-ASSIGN ──────────────────────────────────────────────────────
 
 function usedCodesSet() {
-  const set = new Set();
+  const set = new Set(Object.keys(studentRegistry));
   for (const d of DAYS) {
     for (const slot of (ttData[d.code] || [])) {
       for (const s of (slot.students || [])) {
@@ -964,7 +974,8 @@ function nextCode(gradeKey) {
   const start = g.prefix * 1000 + 1;
   const end   = g.prefix * 1000 + 999;
   for (let i = start; i <= end; i++) {
-    if (!used.has(String(i))) return String(i);
+    const code = String(i).padStart(4, '0');
+    if (!used.has(code)) return code;
   }
   return '';
 }
@@ -1053,6 +1064,7 @@ async function saveAll() {
     }
     for (const [code, stu] of Object.entries(allStudents)) {
       batch.set(db.collection('students').doc(code), stu);
+      studentRegistry[code] = stu;
     }
 
     await batch.commit();
