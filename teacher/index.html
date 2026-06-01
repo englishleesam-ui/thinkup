@@ -175,6 +175,15 @@
       cursor: pointer; transition: background 0.15s;
     }
     .btn-force-checkout:active { background: #dbeafe; }
+    .btn-complete {
+      margin-left: auto; flex-shrink: 0;
+      background: #f0fdf4; color: #16a34a;
+      border: 1.5px solid #bbf7d0; border-radius: 8px;
+      padding: 0.3rem 0.75rem; font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-complete:active { background: #dcfce7; }
+    .s-total.manual { background: #f0fdf4; color: #16a34a; }
     .section-divider { height: 1px; background: #f1f5f9; margin: 0.5rem 0 0.9rem; }
 
     /* ── 학생 카드 ── */
@@ -484,6 +493,23 @@ function selectTeacher(name) {
 }
 
 // ── 뒤로가기 ─────────────────────────────────────────────────────────────────
+async function markComplete(code, name) {
+  if (!confirm(`${name} 학생을 수업 완료로 처리할까요?`)) return;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const ref = db.collection('attendance').doc(today).collection('students').doc(code);
+    const snap = await ref.get();
+    const baseData = { studentName: name, code, date: today, manualComplete: true };
+    if (snap.exists) {
+      await ref.update({ manualComplete: true });
+    } else {
+      await ref.set(baseData);
+    }
+  } catch(e) {
+    alert('오류가 발생했습니다: ' + e.message);
+  }
+}
+
 async function forceCheckout(code, name) {
   if (!confirm(`${name} 학생을 지금 시간으로 퇴실 처리할까요?`)) return;
   try {
@@ -581,6 +607,18 @@ function renderSessionsHTML(sessions) {
 }
 
 function renderCard(s, avatarClass) {
+  if (s.att?.manualComplete) {
+    return `
+      <div class="student-card" onclick="showModal('${s.code}','${s.name}')">
+        <div class="s-left">
+          <div class="s-avatar ${avatarClass}">${s.name[0]}</div>
+          <div class="s-name">${s.name}</div>
+        </div>
+        <div class="s-info">
+          <div class="s-total manual">수업 완료</div>
+        </div>
+      </div>`;
+  }
   const sessions = getSessions(s.att);
   const lastSession = sessions[sessions.length - 1];
   const isOngoing = lastSession && !lastSession.checkOut;
@@ -612,9 +650,10 @@ function renderAllSections(allStudents) {
 
   const pending = [], checkedIn = [], checkedOut = [];
   allStudents.forEach(s => {
-    const sessions = getSessions(attendanceData[s.code]);
-    const last = sessions[sessions.length - 1];
     const att = attendanceData[s.code];
+    if (att?.manualComplete)      { checkedOut.push({...s, att}); return; }
+    const sessions = getSessions(att);
+    const last = sessions[sessions.length - 1];
     if (!last)                    pending.push({...s, att});
     else if (!last.checkOut)      checkedIn.push({...s, att});
     else                          checkedOut.push({...s, att});
@@ -626,6 +665,7 @@ function renderAllSections(allStudents) {
         <div class="s-avatar av-pending">${s.name[0]}</div>
         <div class="s-name">${s.name}</div>
       </div>
+      <button class="btn-complete" onclick="event.stopPropagation();markComplete('${s.code}','${s.name}')">수업 완료</button>
     </div>`).join('') || '<div class="empty-msg">모든 학생이 입실했습니다 ✅</div>';
 
   const cardIn  = checkedIn.map(s  => renderCard(s,  'av-in')).join('')  || '<div class="empty-msg">입실한 학생이 없습니다</div>';
