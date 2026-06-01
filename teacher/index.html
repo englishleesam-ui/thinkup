@@ -167,6 +167,14 @@
     }
     .section-badge.in  { background: #d1fae5; color: #059669; }
     .section-badge.out { background: #dbeafe; color: #2563eb; }
+    .btn-force-checkout {
+      margin-left: auto; flex-shrink: 0;
+      background: #eff6ff; color: #2563eb;
+      border: 1.5px solid #bfdbfe; border-radius: 8px;
+      padding: 0.3rem 0.75rem; font-size: 0.78rem; font-weight: 700;
+      cursor: pointer; transition: background 0.15s;
+    }
+    .btn-force-checkout:active { background: #dbeafe; }
     .section-divider { height: 1px; background: #f1f5f9; margin: 0.5rem 0 0.9rem; }
 
     /* ── 학생 카드 ── */
@@ -476,6 +484,38 @@ function selectTeacher(name) {
 }
 
 // ── 뒤로가기 ─────────────────────────────────────────────────────────────────
+async function forceCheckout(code, name) {
+  if (!confirm(`${name} 학생을 지금 시간으로 퇴실 처리할까요?`)) return;
+  try {
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const todayStr = now.toISOString().split('T')[0];
+    const ref = db.collection('attendance').doc(todayStr).collection('students').doc(code);
+    const snap = await ref.get();
+    if (!snap.exists) return;
+    const att = snap.data();
+    const sessions = getSessions(att);
+    const lastSession = sessions[sessions.length - 1];
+    if (!lastSession || lastSession.checkOut) return;
+
+    const checkInParts = lastSession.checkIn.split(':');
+    const checkInDate = new Date();
+    checkInDate.setHours(parseInt(checkInParts[0]), parseInt(checkInParts[1]), 0, 0);
+    const sessionMinutes = Math.max(0, Math.round((now - checkInDate) / 60000));
+    const updatedSessions = sessions.map((s, i) =>
+      i === sessions.length - 1 ? { ...s, checkOut: timeStr, durationMinutes: sessionMinutes } : s
+    );
+    const totalMinutes = updatedSessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+    await ref.update({
+      sessions: updatedSessions,
+      checkOut: timeStr,
+      durationMinutes: totalMinutes
+    });
+  } catch(e) {
+    alert('오류가 발생했습니다: ' + e.message);
+  }
+}
+
 function doRefresh() {
   const btn = document.getElementById('refreshBtn');
   btn.classList.add('spinning');
@@ -548,6 +588,9 @@ function renderCard(s, avatarClass) {
   const short = !isOngoing && totalMin != null && totalMin < 90;
   const totalClass = isOngoing ? 'studying' : (short ? 'short' : 'done');
   const totalLabel = isOngoing ? '공부 중' : fmt(totalMin);
+  const checkoutBtn = isOngoing
+    ? `<button class="btn-force-checkout" onclick="event.stopPropagation();forceCheckout('${s.code}','${s.name}')">퇴실 처리</button>`
+    : '';
   return `
     <div class="student-card" onclick="showModal('${s.code}','${s.name}')">
       <div class="s-left">
@@ -558,6 +601,7 @@ function renderCard(s, avatarClass) {
         ${sessions.length ? renderSessionsHTML(sessions) : ''}
         ${sessions.length ? `<div class="s-total ${totalClass}">${totalLabel}</div>` : ''}
       </div>
+      ${checkoutBtn}
     </div>`;
 }
 
