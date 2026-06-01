@@ -11,6 +11,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="../firebase-config.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: #f1f5f9; min-height: 100vh; }
@@ -71,6 +72,52 @@
     .refresh-btn:active { transform: scale(0.92); }
     .refresh-btn.spinning { animation: spin 0.6s linear; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    .history-btn { display: none; background: rgba(255,255,255,0.15); color: white; border: none; border-radius: 8px; padding: 0.4rem 0.9rem; cursor: pointer; font-size: 0.82rem; }
+
+    /* ── 기록 오버레이 ── */
+    #historyOverlay {
+      display: none; position: fixed; inset: 0; z-index: 200;
+      background: #f1f5f9; flex-direction: column;
+    }
+    #historyOverlay.active { display: flex; }
+    .history-header {
+      background: #1e3a5f; color: white;
+      padding: 1rem 1.2rem;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .history-header h2 { font-size: 1rem; font-weight: 700; }
+    .history-header .sub { font-size: 0.75rem; opacity: 0.65; margin-top: 0.1rem; }
+    .history-header-btns { display: flex; gap: 0.5rem; }
+    .btn-download {
+      background: #f97316; color: white; border: none; border-radius: 8px;
+      padding: 0.45rem 1rem; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    }
+    .btn-history-close {
+      background: rgba(255,255,255,0.15); color: white; border: none; border-radius: 8px;
+      padding: 0.45rem 0.9rem; font-size: 0.82rem; cursor: pointer;
+    }
+    #historyBody { flex: 1; overflow-y: auto; padding: 1rem; }
+    .history-loading { text-align: center; padding: 3rem 1rem; color: #94a3b8; font-size: 0.9rem; }
+    .history-day-block { background: white; border-radius: 14px; margin-bottom: 1rem; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .history-day-head {
+      background: #1e3a5f; color: white;
+      padding: 0.65rem 1rem; font-size: 0.88rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .history-day-head .day-count { font-size: 0.75rem; opacity: 0.75; }
+    .history-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .history-table th {
+      background: #f8fafc; color: #64748b; font-weight: 700;
+      padding: 0.55rem 0.8rem; text-align: left; font-size: 0.75rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .history-table td { padding: 0.55rem 0.8rem; border-bottom: 1px solid #f8fafc; color: #1e293b; }
+    .history-table tr:last-child td { border-bottom: none; }
+    .history-table tr.short-row td { color: #dc2626; }
+    .badge-in  { background: #d1fae5; color: #059669; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.72rem; font-weight: 700; }
+    .badge-out { background: #dbeafe; color: #2563eb; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.72rem; font-weight: 700; }
+    .badge-absent { background: #fee2e2; color: #dc2626; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.72rem; font-weight: 700; }
 
     /* ── 선생님 선택 화면 ── */
     #selectPage { padding: 1.2rem 1rem; }
@@ -220,6 +267,7 @@
     <div class="sub" id="headerSub"></div>
   </div>
   <div class="header-right">
+    <button class="history-btn" id="historyBtn" onclick="openHistory()">📊 기록</button>
     <button class="refresh-btn" id="refreshBtn" onclick="doRefresh()" title="새로고침">🔄</button>
     <button class="back-btn" id="backBtn" onclick="goBack()">← 선생님 선택</button>
     <button class="logout-btn" onclick="doLogout()">로그아웃</button>
@@ -240,6 +288,21 @@
 <div id="mainPage">
   <div class="today-bar" id="todayBar"></div>
   <div id="tabContent"></div>
+</div>
+
+<!-- ── 기록 오버레이 ── -->
+<div id="historyOverlay">
+  <div class="history-header">
+    <div>
+      <h2 id="historyTitle">📊 15일 출석 기록</h2>
+      <div class="sub" id="historySub"></div>
+    </div>
+    <div class="history-header-btns">
+      <button class="btn-download" onclick="downloadExcel()">⬇️ 엑셀 다운로드</button>
+      <button class="btn-history-close" onclick="closeHistory()">✕ 닫기</button>
+    </div>
+  </div>
+  <div id="historyBody"><div class="history-loading">불러오는 중...</div></div>
 </div>
 
 <!-- ── 모달 ── -->
@@ -404,6 +467,7 @@ function selectTeacher(name) {
   document.getElementById('headerTitle').textContent = `${name} 선생님`;
   document.getElementById('backBtn').style.display = 'block';
   document.getElementById('refreshBtn').style.display = 'block';
+  document.getElementById('historyBtn').style.display = 'block';
   document.getElementById('selectPage').style.display = 'none';
   document.getElementById('mainPage').style.display = 'block';
   document.getElementById('todayBar').textContent =
@@ -425,6 +489,7 @@ function goBack() {
   attendanceData = {};
   document.getElementById('backBtn').style.display = 'none';
   document.getElementById('refreshBtn').style.display = 'none';
+  document.getElementById('historyBtn').style.display = 'none';
   document.getElementById('headerTitle').textContent = 'ThinkUp 선생님';
   document.getElementById('mainPage').style.display = 'none';
   document.getElementById('selectPage').style.display = 'block';
@@ -561,6 +626,121 @@ function showModal(code, name) {
   document.getElementById('modalOverlay').classList.add('open');
 }
 function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+
+// ── 기록 ─────────────────────────────────────────────────────────────────────
+let historyData = []; // [{ dateStr, dateLabel, students: [{name,code,sessions,checkIn,checkOut,durationMinutes}] }]
+
+function getPast15Days() {
+  const days = [];
+  for (let i = 0; i < 15; i++) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    const dayKr = ['일','월','화','수','목','금','토'][d.getDay()];
+    days.push({ dateStr: `${y}-${m}-${day}`, dateLabel: `${y}.${m}.${day} (${dayKr})` });
+  }
+  return days;
+}
+
+function getTeacherStudentCodes() {
+  const codes = new Set();
+  Object.values(allSchedule).forEach(dayData => {
+    (dayData?.teachers || []).filter(t => t.name === currentTeacher)
+      .flatMap(t => t.students || [])
+      .forEach(s => codes.add(s.code));
+  });
+  return codes;
+}
+
+async function openHistory() {
+  document.getElementById('historyOverlay').classList.add('active');
+  document.getElementById('historySub').textContent = `${currentTeacher} 선생님 · 최근 15일`;
+  document.getElementById('historyBody').innerHTML = '<div class="history-loading">불러오는 중...</div>';
+  historyData = [];
+
+  const days = getPast15Days();
+  const myCodes = getTeacherStudentCodes();
+
+  for (const { dateStr, dateLabel } of days) {
+    try {
+      const snap = await db.collection('attendance').doc(dateStr).collection('students').get();
+      const students = [];
+      snap.forEach(doc => {
+        if (myCodes.has(doc.id)) students.push({ code: doc.id, ...doc.data() });
+      });
+      if (students.length > 0) historyData.push({ dateStr, dateLabel, students });
+    } catch(e) { /* 해당 날짜 기록 없음 */ }
+  }
+
+  renderHistory();
+}
+
+function renderHistory() {
+  const body = document.getElementById('historyBody');
+  if (!historyData.length) {
+    body.innerHTML = '<div class="history-loading">최근 15일간 출석 기록이 없습니다.</div>';
+    return;
+  }
+
+  body.innerHTML = historyData.map(({ dateLabel, students }) => {
+    const rows = students.sort((a,b) => (a.studentName||a.code).localeCompare(b.studentName||b.code)).map(s => {
+      const sessions = getSessions(s);
+      const isOngoing = sessions.length > 0 && !sessions[sessions.length-1].checkOut;
+      const total = s.durationMinutes;
+      const short = !isOngoing && total != null && total < 90;
+      const statusBadge = !sessions.length ? '<span class="badge-absent">미출석</span>'
+        : isOngoing ? '<span class="badge-in">공부 중</span>'
+        : '<span class="badge-out">퇴실</span>';
+      const sessionStr = sessions.map(s => `${s.checkIn}→${s.checkOut||'?'}`).join(' / ') || '-';
+      return `<tr class="${short?'short-row':''}">
+        <td>${escapeHtml(s.studentName||s.code)}</td>
+        <td>${sessionStr}</td>
+        <td>${total != null ? fmt(total) : (isOngoing ? '공부 중' : '-')}</td>
+        <td>${statusBadge}</td>
+      </tr>`;
+    }).join('');
+    return `
+      <div class="history-day-block">
+        <div class="history-day-head">
+          <span>${dateLabel}</span>
+          <span class="day-count">${students.length}명 출석</span>
+        </div>
+        <table class="history-table">
+          <thead><tr><th>이름</th><th>입실 → 퇴실</th><th>공부시간</th><th>상태</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }).join('');
+}
+
+function closeHistory() {
+  document.getElementById('historyOverlay').classList.remove('active');
+}
+
+function downloadExcel() {
+  if (!historyData.length) return;
+  const rows = [['날짜', '선생님', '학생명', '코드', '입퇴실 기록', '총 공부시간(분)', '총 공부시간', '상태']];
+  historyData.forEach(({ dateLabel, students }) => {
+    students.forEach(s => {
+      const sessions = getSessions(s);
+      const isOngoing = sessions.length > 0 && !sessions[sessions.length-1].checkOut;
+      const sessionStr = sessions.map(s => `${s.checkIn}→${s.checkOut||'공부중'}`).join(' / ') || '-';
+      const total = s.durationMinutes ?? '';
+      const totalStr = total !== '' ? fmt(total) : (isOngoing ? '공부 중' : '-');
+      const status = !sessions.length ? '미출석' : isOngoing ? '공부 중' : total < 90 ? '조기퇴실' : '정상';
+      rows.push([dateLabel, currentTeacher, s.studentName||s.code, s.code, sessionStr, total, totalStr, status]);
+    });
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [14,12,8,6,22,14,12,8].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '출석기록');
+  const now = new Date();
+  const fname = `출석기록_${currentTeacher}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.xlsx`;
+  XLSX.writeFile(wb, fname);
+}
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
 </script>
