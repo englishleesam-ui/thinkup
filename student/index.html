@@ -67,6 +67,44 @@
     .key.empty { background: transparent; cursor: default; }
     .key.empty:active { transform: none; }
 
+    /* 이름 확인 화면 */
+    #confirmScreen {
+      display: none; height: 100vh;
+      align-items: center; justify-content: center;
+      flex-direction: column; padding: 2rem 1.5rem;
+      text-align: center;
+      background: linear-gradient(160deg, #064e3b 0%, #047857 100%);
+    }
+    #confirmScreen.checkout {
+      background: linear-gradient(160deg, #1e3a5f 0%, #2563eb 100%);
+    }
+    .confirm-label {
+      color: rgba(255,255,255,0.75);
+      font-size: 1rem; font-weight: 700; margin-bottom: 0.8rem;
+    }
+    .confirm-name {
+      color: white; font-size: 2.4rem; font-weight: 800;
+      margin-bottom: 0.8rem;
+    }
+    .confirm-question {
+      color: white; font-size: 1.35rem; font-weight: 700;
+      line-height: 1.6;
+    }
+    .confirm-actions {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem; width: 100%; max-width: 360px;
+      margin-top: 2.2rem;
+    }
+    .confirm-btn {
+      border: 2px solid rgba(255,255,255,0.4);
+      border-radius: 16px; padding: 1.25rem 0.75rem;
+      font-size: 1.35rem; font-weight: 800; cursor: pointer;
+    }
+    .confirm-btn.yes { background: white; color: #047857; }
+    #confirmScreen.checkout .confirm-btn.yes { color: #1d4ed8; }
+    .confirm-btn.no { background: transparent; color: white; }
+    .confirm-btn:active { transform: scale(0.97); }
+
     /* 메시지 화면 */
     #msgScreen {
       display: none; height: 100vh;
@@ -145,7 +183,7 @@
     <button class="key" onclick="press('9')">9</button>
     <button class="key empty"></button>
     <button class="key" onclick="press('0')">0</button>
-    <button class="key del" onclick="del()">⌫</button>
+    <button class="key del" onclick="del()">←</button>
   </div>
 </div>
 
@@ -160,10 +198,22 @@
   </div>
 </div>
 
+<!-- 학생 이름 확인 화면 -->
+<div id="confirmScreen">
+  <div class="confirm-label" id="confirmLabel"></div>
+  <div class="confirm-name" id="confirmName"></div>
+  <div class="confirm-question" id="confirmQuestion"></div>
+  <div class="confirm-actions">
+    <button class="confirm-btn yes" onclick="confirmAttendance()">Y 맞아요</button>
+    <button class="confirm-btn no" onclick="cancelAttendance()">N 아니에요</button>
+  </div>
+</div>
+
 <script>
 let code = '';
 let processing = false;
 let resetTimer = null;
+let pendingAttendance = null;
 
 function toDateStr(d) {
   return d.toISOString().split('T')[0];
@@ -213,51 +263,13 @@ async function submitCode() {
 
     const student = studentDoc.data();
     const today = toDateStr(new Date());
-    const now = new Date();
-    const timeStr = formatTime(now);
     const attendRef = db.collection('attendance').doc(today).collection('students').doc(enteredCode);
     const attendDoc = await attendRef.get();
 
     if (!attendDoc.exists || !attendDoc.data().checkIn) {
-      // 입실 처리
-      await attendRef.set({
-        studentName: student.name,
-        code: enteredCode,
-        checkIn: timeStr,
-        checkInTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        checkOut: null,
-        durationMinutes: null,
-        date: today
-      });
-      showMessage(
-        '✅',
-        `${student.name} 학생은\n${timeStr}에 입실하였습니다`,
-        '',
-        'checkin'
-      );
+      showConfirmation(student, enteredCode, today, attendRef, 'checkin');
     } else if (!attendDoc.data().checkOut) {
-      // 퇴실 처리
-      const data = attendDoc.data();
-      const checkInParts = data.checkIn.split(':');
-      const checkInDate = new Date();
-      checkInDate.setHours(parseInt(checkInParts[0]), parseInt(checkInParts[1]), 0, 0);
-      const durationMinutes = Math.round((now - checkInDate) / 60000);
-      const durStr = formatDuration(durationMinutes);
-
-      await attendRef.update({
-        checkOut: timeStr,
-        checkOutTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        durationMinutes
-      });
-      const isShort = durationMinutes < 90;
-      showMessage(
-        isShort ? '⏰' : '👋',
-        `${student.name} 학생은 퇴실합니다.`,
-        isShort
-          ? `오늘 총 수업시간: ${durStr}\n1시간 30분이 되지 않았어요.\n내일은 더 열심히 해봐요! 💪`
-          : `오늘 총 수업시간: ${durStr}\n수고하셨습니다! 👏`,
-        isShort ? 'checkout-short' : 'checkout'
-      );
+      showConfirmation(student, enteredCode, today, attendRef, 'checkout');
     } else {
       // 이미 퇴실한 학생
       showMessage('ℹ️', `${student.name} 학생은\n이미 퇴실하였습니다.`, '', 'error');
@@ -267,9 +279,86 @@ async function submitCode() {
   }
 }
 
+function showConfirmation(student, enteredCode, today, attendRef, action) {
+  pendingAttendance = { student, enteredCode, today, attendRef, action };
+  const confirm = document.getElementById('confirmScreen');
+  document.getElementById('mainScreen').style.display = 'none';
+  confirm.style.display = 'flex';
+  confirm.className = action === 'checkout' ? 'checkout' : '';
+  document.getElementById('confirmLabel').textContent =
+    action === 'checkout' ? '퇴실 확인' : '입실 확인';
+  document.getElementById('confirmName').textContent = `${student.name} 학생`;
+  document.getElementById('confirmQuestion').textContent =
+    action === 'checkout' ? '퇴실하시겠습니까?' : '입실하시겠습니까?';
+}
+
+async function confirmAttendance() {
+  if (!pendingAttendance) return;
+  const pending = pendingAttendance;
+  pendingAttendance = null;
+
+  try {
+    const now = new Date();
+    const timeStr = formatTime(now);
+    const latestDoc = await pending.attendRef.get();
+    const latest = latestDoc.exists ? latestDoc.data() : null;
+
+    if (pending.action === 'checkin') {
+      if (latest && latest.checkIn) {
+        showMessage('ℹ️', '출석 상태가 변경되었습니다.', '코드를 다시 입력해주세요.', 'error');
+        return;
+      }
+      await pending.attendRef.set({
+        studentName: pending.student.name,
+        code: pending.enteredCode,
+        checkIn: timeStr,
+        checkInTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        checkOut: null,
+        durationMinutes: null,
+        date: pending.today
+      });
+      showMessage('✅', `${pending.student.name} 학생은\n${timeStr}에 입실하였습니다`, '', 'checkin');
+      return;
+    }
+
+    if (!latest || !latest.checkIn || latest.checkOut) {
+      showMessage('ℹ️', '출석 상태가 변경되었습니다.', '코드를 다시 입력해주세요.', 'error');
+      return;
+    }
+
+    const checkInParts = latest.checkIn.split(':');
+    const checkInDate = new Date();
+    checkInDate.setHours(parseInt(checkInParts[0]), parseInt(checkInParts[1]), 0, 0);
+    const durationMinutes = Math.max(0, Math.round((now - checkInDate) / 60000));
+    const durStr = formatDuration(durationMinutes);
+    await pending.attendRef.update({
+      checkOut: timeStr,
+      checkOutTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      durationMinutes
+    });
+    const isShort = durationMinutes < 90;
+    showMessage(
+      isShort ? '⏰' : '👋',
+      `${pending.student.name} 학생은\n${timeStr}에 퇴실합니다.`,
+      isShort
+        ? `오늘 총 공부 시간: ${durStr}\n1시간 30분이 되지 않았어요.`
+        : `오늘 총 공부 시간: ${durStr}\n수고하셨습니다!`,
+      isShort ? 'checkout-short' : 'checkout'
+    );
+  } catch (err) {
+    showMessage('⚠️', '오류가 발생했습니다.', err.message, 'error');
+  }
+}
+
+function cancelAttendance() {
+  pendingAttendance = null;
+  resetScreen();
+}
+
 function showMessage(icon, text, sub, type) {
   const msg = document.getElementById('msgScreen');
   document.getElementById('mainScreen').style.display = 'none';
+  document.getElementById('confirmScreen').style.display = 'none';
   msg.style.display = 'flex';
   msg.className = type;
   document.getElementById('msgIcon').textContent = icon;
@@ -292,8 +381,10 @@ function showMessage(icon, text, sub, type) {
 function resetScreen() {
   code = '';
   processing = false;
+  pendingAttendance = null;
   updateDots();
   document.getElementById('msgScreen').style.display = 'none';
+  document.getElementById('confirmScreen').style.display = 'none';
   document.getElementById('mainScreen').style.display = 'flex';
 }
 
