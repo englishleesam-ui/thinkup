@@ -249,6 +249,13 @@ function del() {
   updateDots();
 }
 
+function getActiveSessions(att) {
+  if (!att) return [];
+  if (att.sessions && att.sessions.length > 0) return att.sessions;
+  if (!att.checkIn) return [];
+  return [{ checkIn: att.checkIn, checkOut: att.checkOut || null, durationMinutes: att.durationMinutes || null }];
+}
+
 async function submitCode() {
   processing = true;
   const enteredCode = code;
@@ -266,13 +273,12 @@ async function submitCode() {
     const attendRef = db.collection('attendance').doc(today).collection('students').doc(enteredCode);
     const attendDoc = await attendRef.get();
 
-    if (!attendDoc.exists || !attendDoc.data().checkIn) {
+    const sessions = getActiveSessions(attendDoc.exists ? attendDoc.data() : null);
+    const lastSession = sessions[sessions.length - 1];
+    if (!lastSession || lastSession.checkOut) {
       showConfirmation(student, enteredCode, today, attendRef, 'checkin');
-    } else if (!attendDoc.data().checkOut) {
-      showConfirmation(student, enteredCode, today, attendRef, 'checkout');
     } else {
-      // 이미 퇴실한 학생
-      showMessage('ℹ️', `${student.name} 학생은\n이미 퇴실하였습니다.`, '', 'error');
+      showConfirmation(student, enteredCode, today, attendRef, 'checkout');
     }
   } catch (err) {
     showMessage('⚠️', '오류가 발생했습니다.', err.message, 'error');
@@ -303,40 +309,60 @@ async function confirmAttendance() {
     const latestDoc = await pending.attendRef.get();
     const latest = latestDoc.exists ? latestDoc.data() : null;
 
+    const sessions = getActiveSessions(latest);
+
     if (pending.action === 'checkin') {
-      if (latest && latest.checkIn) {
+      const lastSession = sessions[sessions.length - 1];
+      if (lastSession && !lastSession.checkOut) {
         showMessage('ℹ️', '출석 상태가 변경되었습니다.', '코드를 다시 입력해주세요.', 'error');
         return;
       }
-      await pending.attendRef.set({
-        studentName: pending.student.name,
-        code: pending.enteredCode,
-        checkIn: timeStr,
-        checkInTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-        checkOut: null,
-        durationMinutes: null,
-        date: pending.today
-      });
+      const newSession = { checkIn: timeStr, checkOut: null, durationMinutes: null };
+      const newSessions = [...sessions, newSession];
+      if (!latest) {
+        await pending.attendRef.set({
+          studentName: pending.student.name,
+          code: pending.enteredCode,
+          checkIn: timeStr,
+          checkInTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
+          checkOut: null,
+          durationMinutes: null,
+          date: pending.today,
+          sessions: newSessions
+        });
+      } else {
+        await pending.attendRef.update({
+          sessions: newSessions,
+          checkOut: null,
+          durationMinutes: null
+        });
+      }
       showMessage('✅', `${pending.student.name} 학생은\n${timeStr}에 입실하였습니다`, '', 'checkin');
       return;
     }
 
-    if (!latest || !latest.checkIn || latest.checkOut) {
+    const lastSession = sessions[sessions.length - 1];
+    if (!lastSession || lastSession.checkOut) {
       showMessage('ℹ️', '출석 상태가 변경되었습니다.', '코드를 다시 입력해주세요.', 'error');
       return;
     }
 
-    const checkInParts = latest.checkIn.split(':');
+    const checkInParts = lastSession.checkIn.split(':');
     const checkInDate = new Date();
     checkInDate.setHours(parseInt(checkInParts[0]), parseInt(checkInParts[1]), 0, 0);
-    const durationMinutes = Math.max(0, Math.round((now - checkInDate) / 60000));
-    const durStr = formatDuration(durationMinutes);
+    const sessionMinutes = Math.max(0, Math.round((now - checkInDate) / 60000));
+    const updatedSessions = sessions.map((s, i) =>
+      i === sessions.length - 1 ? { ...s, checkOut: timeStr, durationMinutes: sessionMinutes } : s
+    );
+    const totalMinutes = updatedSessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+    const durStr = formatDuration(totalMinutes);
     await pending.attendRef.update({
+      sessions: updatedSessions,
       checkOut: timeStr,
       checkOutTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      durationMinutes
+      durationMinutes: totalMinutes
     });
-    const isShort = durationMinutes < 90;
+    const isShort = totalMinutes < 90;
     showMessage(
       isShort ? '⏰' : '👋',
       `${pending.student.name} 학생은\n${timeStr}에 퇴실합니다.`,
