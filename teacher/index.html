@@ -61,12 +61,16 @@
     .header-info h1 { font-size: 1.05rem; font-weight: 700; }
     .header-info .sub { font-size: 0.78rem; opacity: 0.65; margin-top: 0.1rem; }
     .header-right { display: flex; gap: 0.5rem; align-items: center; }
-    .back-btn, .logout-btn {
+    .back-btn, .logout-btn, .refresh-btn {
       background: rgba(255,255,255,0.15); color: white;
       border: none; border-radius: 8px;
       padding: 0.4rem 0.9rem; cursor: pointer; font-size: 0.82rem;
     }
     .back-btn { display: none; }
+    .refresh-btn { display: none; font-size: 1rem; padding: 0.4rem 0.7rem; }
+    .refresh-btn:active { transform: scale(0.92); }
+    .refresh-btn.spinning { animation: spin 0.6s linear; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
     /* ── 선생님 선택 화면 ── */
     #selectPage { padding: 1.2rem 1rem; }
@@ -216,6 +220,7 @@
     <div class="sub" id="headerSub"></div>
   </div>
   <div class="header-right">
+    <button class="refresh-btn" id="refreshBtn" onclick="doRefresh()" title="새로고침">🔄</button>
     <button class="back-btn" id="backBtn" onclick="goBack()">← 선생님 선택</button>
     <button class="logout-btn" onclick="doLogout()">로그아웃</button>
   </div>
@@ -398,6 +403,7 @@ function selectTeacher(name) {
   currentTeacher = name;
   document.getElementById('headerTitle').textContent = `${name} 선생님`;
   document.getElementById('backBtn').style.display = 'block';
+  document.getElementById('refreshBtn').style.display = 'block';
   document.getElementById('selectPage').style.display = 'none';
   document.getElementById('mainPage').style.display = 'block';
   document.getElementById('todayBar').textContent =
@@ -406,11 +412,19 @@ function selectTeacher(name) {
 }
 
 // ── 뒤로가기 ─────────────────────────────────────────────────────────────────
+function doRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  setTimeout(() => btn.classList.remove('spinning'), 600);
+  loadTodayContent();
+}
+
 function goBack() {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   currentTeacher = null;
   attendanceData = {};
   document.getElementById('backBtn').style.display = 'none';
+  document.getElementById('refreshBtn').style.display = 'none';
   document.getElementById('headerTitle').textContent = 'ThinkUp 선생님';
   document.getElementById('mainPage').style.display = 'none';
   document.getElementById('selectPage').style.display = 'block';
