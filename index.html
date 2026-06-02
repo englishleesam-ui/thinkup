@@ -366,54 +366,41 @@
         thinkup.kr 주소 없이도 클릭 한 번에 바로 접속됩니다.
       </div>
       <div class="install-steps-row">
-        <div class="istep"><div class="istep-num">1</div>아래 버튼 클릭</div>
-        <div class="istep"><div class="istep-num">2</div>과목 · 비밀번호 입력</div>
-        <div class="istep"><div class="istep-num">3</div>바탕화면에 추가 클릭</div>
+        <div class="istep"><div class="istep-num">1</div>과목 버튼 클릭</div>
+        <div class="istep"><div class="istep-num">2</div>받은 파일을 바탕화면으로 이동</div>
+        <div class="istep"><div class="istep-num">3</div>아이콘 더블클릭</div>
       </div>
     </div>
     <div class="install-right">
       <div class="icon-subject-grid" id="iconGrid"></div>
-      <div class="install-hint">과목을 선택하면 아이콘이 다운로드됩니다</div>
+      <div class="install-hint">Windows용 바로가기 아이콘이 다운로드됩니다</div>
     </div>
   </div>
 </section>
 
 <script>
 const SUBJECTS = ["국어","영어","수학","과학","역사"];
+const SUBJECT_SHORTCUTS = {
+  "국어":"korean", "영어":"english", "수학":"math", "과학":"science", "역사":"history"
+};
 const grid = document.getElementById("iconGrid");
 grid.innerHTML = SUBJECTS.map(s =>
-  `<button class="icon-subject-btn" onclick="dlIcon('${s}')">${s}</button>`
+  `<button class="icon-subject-btn" onclick="downloadShortcut('${s}')">${s}</button>`
 ).join("");
 
-function dlIcon(name) {
-  const sz = 512, canvas = document.createElement("canvas");
-  canvas.width = sz; canvas.height = sz;
-  const c = canvas.getContext("2d");
-  // 둥근 배경
-  const r = 96;
-  c.beginPath();
-  c.moveTo(r,0); c.lineTo(sz-r,0); c.quadraticCurveTo(sz,0,sz,r);
-  c.lineTo(sz,sz-r); c.quadraticCurveTo(sz,sz,sz-r,sz);
-  c.lineTo(r,sz); c.quadraticCurveTo(0,sz,0,sz-r);
-  c.lineTo(0,r); c.quadraticCurveTo(0,0,r,0);
-  c.closePath(); c.fillStyle="#1f4f46"; c.fill();
-  // T 모양
-  c.fillStyle="#fff"; c.beginPath();
-  c.moveTo(126,116); c.lineTo(386,116); c.lineTo(386,182);
-  c.lineTo(290,182); c.lineTo(290,320); c.lineTo(222,320);
-  c.lineTo(222,182); c.lineTo(126,182); c.closePath(); c.fill();
-  // 주황 원
-  c.fillStyle="#d3542f"; c.beginPath();
-  c.arc(363,330,38,0,Math.PI*2); c.fill();
-  // 과목명
-  c.fillStyle="rgba(0,0,0,0.45)"; c.fillRect(0,358,512,154);
-  c.fillStyle="#fff";
-  c.font="bold 100px 'Apple SD Gothic Neo','Malgun Gothic',sans-serif";
-  c.textAlign="center"; c.textBaseline="middle";
-  c.fillText(name,256,435);
-  // 다운로드
+function downloadShortcut(name) {
+  const shortcut = SUBJECT_SHORTCUTS[name];
+  const content = [
+    "[InternetShortcut]",
+    `URL=https://thinkup.kr/teacher/?quick=${shortcut}`,
+    "IconIndex=0",
+    ""
+  ].join("\r\n");
   const a = document.createElement("a");
-  a.download=`thinkup-${name}.png`; a.href=canvas.toDataURL("image/png"); a.click();
+  a.download = `ThinkUp-${name}.url`;
+  a.href = URL.createObjectURL(new Blob([content], { type: "application/internet-shortcut" }));
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 </script>
 

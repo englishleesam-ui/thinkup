@@ -463,10 +463,18 @@ function doLogout() {
 
 // ── 세션 복원 ─────────────────────────────────────────────────────────────────
 (function resumeSession() {
-  const key = sessionStorage.getItem('thinkup_teacher_subject');
+  const quick = new URLSearchParams(location.search).get('quick');
+  const quickSubjects = {
+    korean:'korean', english:'english', math:'math', science:'science', history:'history'
+  };
+  const key = quickSubjects[quick] || sessionStorage.getItem('thinkup_teacher_subject');
   if (!key) return;
   const sub = SUBJECTS.find(s => s.key === key);
   if (!sub) return;
+  if (quick) {
+    sessionStorage.setItem('thinkup_teacher_subject', sub.key);
+    history.replaceState(null, '', location.pathname);
+  }
   currentSubject = sub;
   document.getElementById('subjectSelect').value = sub.name;
   onSubjectChange();
