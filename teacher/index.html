@@ -74,6 +74,34 @@
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     .history-btn { display: none; background: rgba(255,255,255,0.15); color: white; border: none; border-radius: 8px; padding: 0.4rem 0.9rem; cursor: pointer; font-size: 0.82rem; }
 
+    /* ── PWA 설치 배너 ── */
+    #installBanner {
+      display: none;
+      background: linear-gradient(135deg, #1d4ed8, #2563eb);
+      color: white; padding: 0.9rem 1.2rem;
+      align-items: center; gap: 0.9rem;
+      box-shadow: 0 4px 16px rgba(37,99,235,0.4);
+    }
+    #installBanner.show { display: flex; }
+    .install-banner-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .install-banner-text { flex: 1; }
+    .install-banner-text strong { display: block; font-size: 0.92rem; font-weight: 700; margin-bottom: 0.15rem; }
+    .install-banner-text span { font-size: 0.78rem; opacity: 0.82; }
+    .btn-do-install {
+      background: white; color: #1d4ed8;
+      border: none; border-radius: 10px;
+      padding: 0.55rem 1.1rem; font-size: 0.85rem; font-weight: 800;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      transition: opacity 0.2s;
+    }
+    .btn-do-install:active { opacity: 0.85; }
+    .btn-banner-close {
+      background: rgba(255,255,255,0.2); color: white;
+      border: none; border-radius: 8px;
+      padding: 0.45rem 0.6rem; font-size: 0.85rem;
+      cursor: pointer; flex-shrink: 0;
+    }
+
     /* ── 기록 오버레이 ── */
     #historyOverlay {
       display: none; position: fixed; inset: 0; z-index: 200;
@@ -305,6 +333,17 @@
 <div id="mainPage">
   <div class="today-bar" id="todayBar"></div>
   <div id="tabContent"></div>
+</div>
+
+<!-- ── PWA 설치 배너 ── -->
+<div id="installBanner">
+  <div class="install-banner-icon">📲</div>
+  <div class="install-banner-text">
+    <strong>바탕화면에 추가하면 아이콘으로 바로 접속!</strong>
+    <span>앱처럼 설치하면 thinkup.kr 주소 없이 바로 열립니다</span>
+  </div>
+  <button class="btn-do-install" id="btnDoInstall">바탕화면에 추가</button>
+  <button class="btn-banner-close" id="btnBannerClose">✕</button>
 </div>
 
 <!-- ── 기록 오버레이 ── -->
@@ -827,6 +866,38 @@ function downloadExcel() {
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// ── PWA 설치 ─────────────────────────────────────────────────────────────────
+let deferredInstallPrompt = null;
+const installBanner  = document.getElementById('installBanner');
+const btnDoInstall   = document.getElementById('btnDoInstall');
+const btnBannerClose = document.getElementById('btnBannerClose');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // ?install=1 로 진입했거나 배너를 닫은 적 없으면 자동 표시
+  const fromInstallPage = new URLSearchParams(location.search).get('install') === '1';
+  const dismissed = sessionStorage.getItem('installBannerDismissed');
+  if (!dismissed || fromInstallPage) installBanner.classList.add('show');
+});
+
+btnDoInstall.addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  if (outcome === 'accepted') installBanner.classList.remove('show');
+  deferredInstallPrompt = null;
+});
+
+btnBannerClose.addEventListener('click', () => {
+  installBanner.classList.remove('show');
+  sessionStorage.setItem('installBannerDismissed', '1');
+});
+
+window.addEventListener('appinstalled', () => {
+  installBanner.classList.remove('show');
+});
 </script>
 </body>
 </html>
