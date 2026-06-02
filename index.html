@@ -255,6 +255,13 @@
     }
     .btn-install-teacher:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(37,99,235,0.55); }
     .install-hint { font-size: 0.78rem; color: rgba(255,255,255,0.35); text-align: center; }
+    .icon-subject-grid { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .icon-subject-btn {
+      padding: 0.75rem 1.3rem; border-radius: 12px; border: 2px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.07); color: #fff; font-size: 1rem; font-weight: 700;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .icon-subject-btn:hover { background: #2563eb; border-color: #2563eb; transform: translateY(-2px); }
 
     /* ── 푸터 ── */
     footer {
@@ -365,13 +372,50 @@
       </div>
     </div>
     <div class="install-right">
-      <a href="./teacher/?install=1" class="btn-install-teacher">
-        📲 선생님 앱 설치하기
-      </a>
-      <div class="install-hint">설치 후 바탕화면 아이콘으로 바로 실행</div>
+      <div class="icon-subject-grid" id="iconGrid"></div>
+      <div class="install-hint">과목을 선택하면 아이콘이 다운로드됩니다</div>
     </div>
   </div>
 </section>
+
+<script>
+const SUBJECTS = ["국어","영어","수학","과학","역사"];
+const grid = document.getElementById("iconGrid");
+grid.innerHTML = SUBJECTS.map(s =>
+  `<button class="icon-subject-btn" onclick="dlIcon('${s}')">${s}</button>`
+).join("");
+
+function dlIcon(name) {
+  const sz = 512, canvas = document.createElement("canvas");
+  canvas.width = sz; canvas.height = sz;
+  const c = canvas.getContext("2d");
+  // 둥근 배경
+  const r = 96;
+  c.beginPath();
+  c.moveTo(r,0); c.lineTo(sz-r,0); c.quadraticCurveTo(sz,0,sz,r);
+  c.lineTo(sz,sz-r); c.quadraticCurveTo(sz,sz,sz-r,sz);
+  c.lineTo(r,sz); c.quadraticCurveTo(0,sz,0,sz-r);
+  c.lineTo(0,r); c.quadraticCurveTo(0,0,r,0);
+  c.closePath(); c.fillStyle="#1f4f46"; c.fill();
+  // T 모양
+  c.fillStyle="#fff"; c.beginPath();
+  c.moveTo(126,116); c.lineTo(386,116); c.lineTo(386,182);
+  c.lineTo(290,182); c.lineTo(290,320); c.lineTo(222,320);
+  c.lineTo(222,182); c.lineTo(126,182); c.closePath(); c.fill();
+  // 주황 원
+  c.fillStyle="#d3542f"; c.beginPath();
+  c.arc(363,330,38,0,Math.PI*2); c.fill();
+  // 과목명
+  c.fillStyle="rgba(0,0,0,0.45)"; c.fillRect(0,358,512,154);
+  c.fillStyle="#fff";
+  c.font="bold 100px 'Apple SD Gothic Neo','Malgun Gothic',sans-serif";
+  c.textAlign="center"; c.textBaseline="middle";
+  c.fillText(name,256,435);
+  // 다운로드
+  const a = document.createElement("a");
+  a.download=`thinkup-${name}.png`; a.href=canvas.toDataURL("image/png"); a.click();
+}
+</script>
 
 <!-- 푸터 -->
 <footer>
