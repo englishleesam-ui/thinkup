@@ -798,6 +798,7 @@ async function doLogout() {
 async function loadData() {
   setStatus('불러오는 중...');
   try {
+    let linkedSlotCount = 0;
     studentRegistry = {};
     const studentSnap = await db.collection('students').get();
     studentSnap.forEach(doc => {
@@ -806,18 +807,83 @@ async function loadData() {
       studentRegistry[code] = { ...student, code, name: student.name || student.studentName };
     });
     for (const d of DAYS) {
-      const doc = await db.collection('timetable').doc(`${currentSubject.key}_${d.code}`).get();
-      if (doc.exists) {
-        ttData[d.code] = doc.data().slots || [];
-      } else {
-        ttData[d.code] = [];
-      }
+      const [timetableDoc, scheduleDoc] = await Promise.all([
+        db.collection('timetable').doc(`${currentSubject.key}_${d.code}`).get(),
+        db.collection('schedules').doc(d.code).get(),
+      ]);
+      const savedSlots = timetableDoc.exists ? timetableDoc.data().slots || [] : [];
+      const result = mergeLinkedScheduleSlots(savedSlots, scheduleDoc.exists ? scheduleDoc.data() : null);
+      ttData[d.code] = result.slots;
+      linkedSlotCount += result.added;
     }
-    setStatus('로드 완료');
+    setStatus(linkedSlotCount
+      ? `로드 완료 · 기존 명단 ${linkedSlotCount}개 수업 연동됨`
+      : '로드 완료');
   } catch(e) {
     setStatus('로드 오류: ' + e.message, '#ef4444');
   }
   renderGrid();
+}
+
+function studentKey(student) {
+  return student.code || student.name;
+}
+
+function mergeStudents(currentStudents = [], incomingStudents = []) {
+  const result = currentStudents.map(student => ({ ...student }));
+  const keys = new Set(result.map(studentKey));
+  for (const student of incomingStudents) {
+    const registryStudent = studentRegistry[student.code] || {};
+    const normalized = {
+      name: student.name || registryStudent.name || registryStudent.studentName || '',
+      grade: student.grade || registryStudent.grade || '',
+      code: student.code || registryStudent.code || '',
+    };
+    const key = studentKey(normalized);
+    if (normalized.name && key && !keys.has(key)) {
+      result.push(normalized);
+      keys.add(key);
+    }
+  }
+  return result;
+}
+
+function mergeLinkedScheduleSlots(savedSlots, scheduleData) {
+  const slots = savedSlots.filter(slot => slot && slot.teacher && slot.time)
+    .map(slot => ({ ...slot, students: mergeStudents(slot.students || []) }));
+  let added = 0;
+
+  for (const linked of (scheduleData?.teachers || [])) {
+    if (!currentSubject.teachers.includes(linked.name)) continue;
+    const time = linked.time || linked.slot;
+    if (!time) continue;
+    const existing = slots.find(slot => slot.teacher === linked.name && slot.time === time);
+    if (existing) {
+      existing.students = mergeStudents(existing.students, linked.students || []);
+      continue;
+    }
+    slots.push({
+      teacher: linked.name,
+      time,
+      subject: linked.subject || currentSubject.name,
+      students: mergeStudents([], linked.students || []),
+    });
+    added += 1;
+  }
+
+  return { slots, added };
+}
+
+function visibleTimeSlots(dayCode) {
+  const slots = new Set(TIME_SLOTS);
+  for (const slot of (ttData[dayCode] || [])) {
+    if (slot.time) slots.add(slot.time);
+  }
+  return [...slots].sort((a, b) => {
+    const [ah = 99, am = 99] = a.match(/\d+/g)?.map(Number) || [];
+    const [bh = 99, bm = 99] = b.match(/\d+/g)?.map(Number) || [];
+    return ah - bh || am - bm || a.localeCompare(b, 'ko');
+  });
 }
 
 // ── GRID RENDER ───────────────────────────────────────────────────────────
@@ -831,7 +897,7 @@ function renderGrid() {
     <th class="${d.sat ? 'th-saturday' : 'th-weekday'}" style="font-size:1rem">${d.label}</th>
   </tr></thead><tbody>`;
 
-  for (const time of TIME_SLOTS) {
+  for (const time of visibleTimeSlots(d.code)) {
     const slots = (ttData[d.code] || []).filter(s => s.time === time && s.teacher === currentTeacher);
     const addAction = copyBuffer ? `pasteToSlot('${d.code}','${time}')` : `openClassModal('${d.code}','${time}')`;
     html += `<tr>
@@ -1089,10 +1155,12 @@ async function regenerateSchedules() {
       if (doc.exists) {
         const slots = doc.data().slots || [];
         for (const slot of slots) {
+          if (!slot.teacher || !slot.time) continue;
           allTeachers.push({
             name: slot.teacher,
             subject: slot.subject || sub.name,
             time: slot.time,
+            slot: slot.time,
             students: slot.students || [],
           });
         }
