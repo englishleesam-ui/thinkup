@@ -259,7 +259,7 @@
     .icon-subject-btn {
       padding: 0.75rem 1.3rem; border-radius: 12px; border: 2px solid rgba(255,255,255,0.15);
       background: rgba(255,255,255,0.07); color: #fff; font-size: 1rem; font-weight: 700;
-      cursor: pointer; transition: all 0.15s;
+      cursor: pointer; transition: all 0.15s; text-decoration: none;
     }
     .icon-subject-btn:hover { background: #2563eb; border-color: #2563eb; transform: translateY(-2px); }
 
@@ -373,7 +373,7 @@
     </div>
     <div class="install-right">
       <div class="icon-subject-grid" id="iconGrid"></div>
-      <div class="install-hint">과목을 누르면 휴대폰 아이콘 설치 화면으로 이동합니다</div>
+      <div class="install-hint">파일 다운로드 없이 휴대폰 아이콘 설치 화면으로 이동합니다</div>
     </div>
   </div>
 </section>
@@ -385,13 +385,8 @@ const SUBJECT_SHORTCUTS = {
 };
 const grid = document.getElementById("iconGrid");
 grid.innerHTML = SUBJECTS.map(s =>
-  `<button class="icon-subject-btn" onclick="openMobileInstall('${s}')">${s}</button>`
+  `<a class="icon-subject-btn" href="./teacher/?quick=${SUBJECT_SHORTCUTS[s]}&install=1&v=mobile">${s}</a>`
 ).join("");
-
-function openMobileInstall(name) {
-  const shortcut = SUBJECT_SHORTCUTS[name];
-  location.href = `./teacher/?quick=${shortcut}&install=1`;
-}
 </script>
 
 <!-- 푸터 -->
