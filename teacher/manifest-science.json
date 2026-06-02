@@ -1,0 +1,15 @@
+{
+  "name": "ThinkUp 과학",
+  "short_name": "ThinkUp 과학",
+  "description": "ThinkUp 과학 선생님 출석 관리",
+  "start_url": "./?quick=science",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1e3a5f",
+  "theme_color": "#1e3a5f",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "../icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "../icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

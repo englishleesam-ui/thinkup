@@ -4,7 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>ThinkUp 선생님</title>
-  <link rel="manifest" href="./manifest.json">
+  <link rel="manifest" href="./manifest.json" id="teacherManifest">
+  <script>
+    const manifestSubject = new URLSearchParams(location.search).get('quick');
+    if (/^(korean|english|math|science|history)$/.test(manifestSubject || '')) {
+      document.getElementById('teacherManifest').href = `./manifest-${manifestSubject}.json`;
+    }
+  </script>
   <meta name="theme-color" content="#1e3a5f">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -100,6 +106,14 @@
       border: none; border-radius: 8px;
       padding: 0.45rem 0.6rem; font-size: 0.85rem;
       cursor: pointer; flex-shrink: 0;
+    }
+    @media (max-width: 560px) {
+      #installBanner { display: none; padding: 0.85rem 1rem; gap: 0.65rem; flex-wrap: wrap; }
+      #installBanner.show { display: grid; grid-template-columns: auto 1fr auto; }
+      .install-banner-icon { grid-row: 1; }
+      .install-banner-text { grid-column: 2; min-width: 0; }
+      .btn-banner-close { grid-column: 3; grid-row: 1; align-self: start; }
+      .btn-do-install { grid-column: 1 / -1; width: 100%; padding: 0.7rem 1rem; }
     }
 
     /* ── 기록 오버레이 ── */
@@ -339,8 +353,8 @@
 <div id="installBanner">
   <div class="install-banner-icon">📲</div>
   <div class="install-banner-text">
-    <strong>바탕화면에 추가하면 아이콘으로 바로 접속!</strong>
-    <span>앱처럼 설치하면 thinkup.kr 주소 없이 바로 열립니다</span>
+    <strong>휴대폰 홈 화면에 추가하면 바로 접속!</strong>
+    <span>이 과목의 선생님 선택 화면을 아이콘으로 저장합니다</span>
   </div>
   <button class="btn-do-install" id="btnDoInstall">바탕화면에 추가</button>
   <button class="btn-banner-close" id="btnBannerClose">✕</button>
@@ -473,7 +487,6 @@ function doLogout() {
   if (!sub) return;
   if (quick) {
     sessionStorage.setItem('thinkup_teacher_subject', sub.key);
-    history.replaceState(null, '', location.pathname);
   }
   currentSubject = sub;
   document.getElementById('subjectSelect').value = sub.name;
@@ -890,8 +903,15 @@ window.addEventListener('beforeinstallprompt', e => {
   if (!dismissed || fromInstallPage) installBanner.classList.add('show');
 });
 
+if (new URLSearchParams(location.search).get('install') === '1') {
+  installBanner.classList.add('show');
+}
+
 btnDoInstall.addEventListener('click', async () => {
-  if (!deferredInstallPrompt) return;
+  if (!deferredInstallPrompt) {
+    alert('아이폰: Safari 아래의 공유 버튼을 누른 뒤 홈 화면에 추가를 선택하세요.\n\n안드로이드: Chrome 오른쪽 위 메뉴를 누른 뒤 홈 화면에 추가 또는 앱 설치를 선택하세요.');
+    return;
+  }
   deferredInstallPrompt.prompt();
   const { outcome } = await deferredInstallPrompt.userChoice;
   if (outcome === 'accepted') installBanner.classList.remove('show');
