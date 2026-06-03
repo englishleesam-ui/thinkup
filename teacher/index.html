@@ -233,13 +233,19 @@
       background: white; padding: 0.32rem 0.38rem; display: flex; flex-direction: column;
       align-items: flex-start; justify-content: space-between;
     }
-    .calendar-cell.weekend { background: #fef3c7; }
+    .calendar-cell.weekend { background: #fff7d6; }
+    .calendar-cell.attended { background: #0f766e; border-color: #0d665f; }
+    .calendar-cell.extra-attended { background: #f59e0b; border-color: #d97706; }
+    .calendar-cell.absent { background: #fff1f2; }
     .calendar-cell.empty { background: #f8fafc; }
     .calendar-day { width: 100%; display: flex; justify-content: space-between; gap: 0.2rem; color: #0f172a; font-size: 0.82rem; font-weight: 800; }
     .calendar-weekday { color: #94a3b8; font-size: 0.65rem; font-weight: 700; }
+    .calendar-cell.attended .calendar-day,
+    .calendar-cell.extra-attended .calendar-day,
+    .calendar-cell.attended .calendar-weekday,
+    .calendar-cell.extra-attended .calendar-weekday { color: white; }
     .calendar-mark { min-height: 1.05rem; color: #0f172a; font-size: 0.94rem; font-weight: 900; line-height: 1; }
     .calendar-mark.absent { color: #dc2626; font-size: 0.75rem; }
-    .calendar-mark.extra { color: #b45309; }
     .report-legend { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.8rem; color: #64748b; font-size: 0.75rem; }
     .legend-dot { width: 0.65rem; height: 0.65rem; border-radius: 50%; display: inline-block; margin-right: 0.25rem; }
     .report-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
@@ -1160,11 +1166,11 @@ function renderAttendanceCalendar(rows) {
   ).join('');
   const dayCells = rows.map(r => {
     const isWeekend = r.date.getDay() === 0 || r.date.getDay() === 6;
-    const mark = r.attended
-      ? `<div class="calendar-mark${r.scheduled ? '' : ' extra'}">O</div>`
+    const stateClass = r.attended ? (r.scheduled ? ' attended' : ' extra-attended') : (r.scheduled ? ' absent' : '');
+    const mark = r.attended ? '<div class="calendar-mark"></div>'
       : (r.scheduled ? '<div class="calendar-mark absent">결</div>' : '<div class="calendar-mark"></div>');
     return `
-      <div class="calendar-cell${isWeekend ? ' weekend' : ''}" title="${escapeHtml(r.dateLabel)} · ${escapeHtml(r.status)}">
+      <div class="calendar-cell${isWeekend ? ' weekend' : ''}${stateClass}" title="${escapeHtml(r.dateLabel)} · ${escapeHtml(r.status)}">
         <div class="calendar-day">
           <span>${r.date.getDate()}</span>
           <span class="calendar-weekday">${['일','월','화','수','목','금','토'][r.date.getDay()]}</span>
@@ -1217,10 +1223,10 @@ function renderStudentMonthlyReport(student, days) {
       <div class="report-panel-title">이번 달 출석 달력</div>
       ${renderAttendanceCalendar(rows)}
       <div class="report-legend">
-        <span>O 출석</span>
-        <span><i class="legend-dot" style="background:#fef3c7"></i>주말</span>
+        <span><i class="legend-dot" style="background:#0f766e"></i>출석</span>
+        <span><i class="legend-dot" style="background:#fff7d6; border:1px solid #e2c35b"></i>주말</span>
         <span style="color:#dc2626">결 예정 수업 결석</span>
-        <span style="color:#b45309">O 예정 외 출석</span>
+        <span><i class="legend-dot" style="background:#f59e0b"></i>예정 외 출석</span>
       </div>
     </div>
     <div class="report-panel">
