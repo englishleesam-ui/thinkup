@@ -666,7 +666,7 @@ function renderTeacherList() {
 }
 
 // ── 선생님 선택 ───────────────────────────────────────────────────────────────
-function selectTeacher(name) {
+function selectTeacher(name, options = {}) {
   currentTeacher = name;
   document.getElementById('headerTitle').textContent = `${name} 선생님`;
   document.getElementById('backBtn').style.display = 'block';
@@ -676,6 +676,11 @@ function selectTeacher(name) {
   document.getElementById('mainPage').style.display = 'block';
   document.getElementById('todayBar').textContent =
     `📅 ${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일) · 오늘 수업`;
+  if (!options.fromHistory) {
+    const url = new URL(location.href);
+    url.searchParams.set('teacher', name);
+    history.pushState({ view: 'teacher', teacher: name }, '', url);
+  }
   loadTodayContent();
 }
 
@@ -736,7 +741,7 @@ function doRefresh() {
   loadTodayContent();
 }
 
-function goBack() {
+function goBack(options = {}) {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   currentTeacher = null;
   attendanceData = {};
@@ -746,7 +751,21 @@ function goBack() {
   document.getElementById('headerTitle').textContent = 'ThinkUp 선생님';
   document.getElementById('mainPage').style.display = 'none';
   document.getElementById('selectPage').style.display = 'block';
+  if (!options.fromHistory) {
+    const url = new URL(location.href);
+    url.searchParams.delete('teacher');
+    history.replaceState({ view: 'select' }, '', url);
+  }
 }
+
+window.addEventListener('popstate', event => {
+  const teacher = event.state?.teacher;
+  if (teacher && currentSubject?.teachers.includes(teacher)) {
+    selectTeacher(teacher, { fromHistory: true });
+  } else if (currentTeacher) {
+    goBack({ fromHistory: true });
+  }
+});
 
 // ── 오늘 수업 콘텐츠 로드 ─────────────────────────────────────────────────────
 function loadTodayContent() {
