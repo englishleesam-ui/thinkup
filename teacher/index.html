@@ -79,6 +79,8 @@
     .refresh-btn.spinning { animation: spin 0.6s linear; }
     @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     .history-btn { display: none; background: rgba(255,255,255,0.15); color: white; border: none; border-radius: 8px; padding: 0.4rem 0.9rem; cursor: pointer; font-size: 0.82rem; }
+    .report-btn { background: #0f766e; color: white; border: none; border-radius: 10px; padding: 0.72rem 1rem; font-size: 0.88rem; font-weight: 800; cursor: pointer; box-shadow: 0 6px 18px rgba(15,118,110,0.22); }
+    .report-btn:active { transform: scale(0.99); }
 
     /* ── PWA 설치 배너 ── */
     #installBanner {
@@ -160,6 +162,93 @@
     .badge-in  { background: #d1fae5; color: #059669; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.72rem; font-weight: 700; }
     .badge-out { background: #dbeafe; color: #2563eb; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.72rem; font-weight: 700; }
     .badge-absent { background: #fee2e2; color: #dc2626; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.72rem; font-weight: 700; }
+    .badge-extra { background: #fef3c7; color: #b45309; border-radius: 4px; padding: 0.1rem 0.5rem; font-size: 0.72rem; font-weight: 700; }
+
+    /* ── 학생 월간 리포트 ── */
+    .report-entry {
+      background: white; border-radius: 16px; padding: 1rem; margin-bottom: 1rem;
+      box-shadow: 0 2px 10px rgba(15,23,42,0.07); border: 1px solid #e2e8f0;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.9rem;
+    }
+    .report-entry-title { font-size: 0.96rem; font-weight: 800; color: #0f172a; }
+    .report-entry-sub { font-size: 0.78rem; color: #64748b; margin-top: 0.18rem; line-height: 1.35; }
+    #studentReportOverlay {
+      display: none; position: fixed; inset: 0; z-index: 210;
+      background: #eef4f6; flex-direction: column;
+    }
+    #studentReportOverlay.active { display: flex; }
+    .report-header {
+      background: #123047; color: white; padding: 1rem 1.2rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-shrink: 0;
+    }
+    .report-header h2 { font-size: 1rem; font-weight: 800; }
+    .report-header .sub { font-size: 0.75rem; opacity: 0.68; margin-top: 0.1rem; }
+    .report-close {
+      background: rgba(255,255,255,0.14); color: white; border: none; border-radius: 8px;
+      padding: 0.45rem 0.9rem; font-size: 0.82rem; cursor: pointer; flex-shrink: 0;
+    }
+    .report-body { flex: 1; overflow-y: auto; padding: 1rem; }
+    .report-search {
+      background: white; border: 1px solid #dbe3ea; border-radius: 16px;
+      padding: 0.9rem; display: flex; gap: 0.6rem; box-shadow: 0 2px 10px rgba(15,23,42,0.06);
+      position: sticky; top: 0; z-index: 2;
+    }
+    .report-search input {
+      flex: 1; min-width: 0; border: 2px solid #e2e8f0; border-radius: 10px;
+      padding: 0.72rem 0.85rem; font-size: 0.92rem; outline: none;
+    }
+    .report-search input:focus { border-color: #0f766e; }
+    .report-search button {
+      background: #0f766e; color: white; border: none; border-radius: 10px;
+      padding: 0 1rem; font-size: 0.88rem; font-weight: 800; cursor: pointer; white-space: nowrap;
+    }
+    .report-message { text-align: center; padding: 2.5rem 1rem; color: #64748b; font-size: 0.9rem; }
+    .report-student-head {
+      margin-top: 1rem; background: #123047; color: white; border-radius: 18px;
+      padding: 1.1rem; box-shadow: 0 12px 30px rgba(18,48,71,0.18);
+    }
+    .report-student-name { font-size: 1.35rem; font-weight: 900; }
+    .report-student-meta { font-size: 0.78rem; opacity: 0.75; margin-top: 0.28rem; }
+    .report-summary-grid {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.65rem; margin: 0.9rem 0 1rem;
+    }
+    .report-metric {
+      background: white; border: 1px solid #e2e8f0; border-radius: 14px; padding: 0.85rem;
+      box-shadow: 0 2px 9px rgba(15,23,42,0.05);
+    }
+    .report-metric-label { color: #64748b; font-size: 0.74rem; font-weight: 800; }
+    .report-metric-value { color: #0f172a; font-size: 1.25rem; font-weight: 900; margin-top: 0.25rem; }
+    .report-panel {
+      background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1rem; margin-bottom: 0.9rem;
+      box-shadow: 0 2px 9px rgba(15,23,42,0.05);
+    }
+    .report-panel-title { color: #0f172a; font-size: 0.92rem; font-weight: 900; margin-bottom: 0.8rem; }
+    .month-bars { display: grid; grid-template-columns: repeat(auto-fit, minmax(22px, 1fr)); gap: 0.34rem; align-items: end; min-height: 150px; }
+    .month-bar-wrap { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 0.28rem; }
+    .month-bar {
+      width: 100%; min-height: 10px; border-radius: 7px 7px 3px 3px;
+      background: #cbd5e1; display: flex; align-items: flex-end; justify-content: center;
+    }
+    .month-bar.attended { background: linear-gradient(180deg, #14b8a6, #0f766e); }
+    .month-bar.absent { background: #fecaca; }
+    .month-bar.extra { background: linear-gradient(180deg, #fbbf24, #f97316); }
+    .month-bar.off { background: #e2e8f0; opacity: 0.45; }
+    .month-bar-label { font-size: 0.68rem; color: #64748b; }
+    .report-legend { display: flex; gap: 0.7rem; flex-wrap: wrap; margin-top: 0.8rem; color: #64748b; font-size: 0.75rem; }
+    .legend-dot { width: 0.65rem; height: 0.65rem; border-radius: 50%; display: inline-block; margin-right: 0.25rem; }
+    .report-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+    .report-table th { text-align: left; padding: 0.55rem 0.45rem; color: #64748b; border-bottom: 1px solid #e2e8f0; font-size: 0.72rem; }
+    .report-table td { padding: 0.62rem 0.45rem; color: #1e293b; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    .report-table tr:last-child td { border-bottom: none; }
+    @media (max-width: 640px) {
+      .header-right { gap: 0.35rem; }
+      .report-entry { align-items: stretch; flex-direction: column; }
+      .report-btn { width: 100%; }
+      .report-search { flex-direction: column; }
+      .report-search button { padding: 0.75rem 1rem; }
+      .report-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .report-table { font-size: 0.74rem; }
+    }
 
     /* ── 선생님 선택 화면 ── */
     #selectPage { padding: 1.2rem 1rem; }
@@ -338,6 +427,15 @@
   <div style="padding:1.2rem 1rem 0">
     <p class="page-title" id="selectTitle">선생님을 선택하세요</p>
   </div>
+  <div style="padding:0 1rem">
+    <div class="report-entry">
+      <div>
+        <div class="report-entry-title">학생 월간 리포트</div>
+        <div class="report-entry-sub">이름으로 검색해 이번 달 출석일, 결석일, 일별 공부시간을 확인합니다.</div>
+      </div>
+      <button class="report-btn" onclick="openStudentReport()">현황 보기</button>
+    </div>
+  </div>
   <div style="padding:0 1rem" id="teacherList">
     <div class="no-data">불러오는 중...</div>
   </div>
@@ -373,6 +471,24 @@
     </div>
   </div>
   <div id="historyBody"><div class="history-loading">불러오는 중...</div></div>
+</div>
+
+<!-- ── 학생 월간 리포트 오버레이 ── -->
+<div id="studentReportOverlay">
+  <div class="report-header">
+    <div>
+      <h2>학생 월간 리포트</h2>
+      <div class="sub" id="studentReportSub"></div>
+    </div>
+    <button class="report-close" onclick="closeStudentReport()">✕ 닫기</button>
+  </div>
+  <div class="report-body">
+    <form class="report-search" onsubmit="event.preventDefault();runStudentReportSearch();">
+      <input id="studentReportInput" type="search" placeholder="학생 이름을 입력하세요" autocomplete="off">
+      <button type="submit">검색</button>
+    </form>
+    <div id="studentReportBody" class="report-message">학생 이름을 입력하면 이번 달 수업 현황을 분석합니다.</div>
+  </div>
 </div>
 
 <!-- ── 모달 ── -->
@@ -884,6 +1000,235 @@ function downloadExcel() {
   const now = new Date();
   const fname = `출석기록_${currentTeacher}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.xlsx`;
   XLSX.writeFile(wb, fname);
+}
+
+// ── 학생 월간 리포트 ─────────────────────────────────────────────────────────
+let studentReportChoices = [];
+let studentReportAttendance = new Map();
+
+function openStudentReport() {
+  document.getElementById('studentReportOverlay').classList.add('active');
+  document.getElementById('studentReportSub').textContent =
+    `${currentSubject?.name || '전체'} · ${now.getMonth()+1}월 1일 ~ ${now.getMonth()+1}월 ${now.getDate()}일`;
+  setTimeout(() => document.getElementById('studentReportInput').focus(), 80);
+}
+
+function closeStudentReport() {
+  document.getElementById('studentReportOverlay').classList.remove('active');
+}
+
+function normalizeName(value) {
+  return String(value || '').replace(/\s+/g, '').toLowerCase();
+}
+
+function localDateString(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth()+1).padStart(2,'0');
+  const d = String(date.getDate()).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
+function getMonthDaysToToday() {
+  const days = [];
+  const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  while (cursor <= end) {
+    const date = new Date(cursor);
+    const dayCode = JS_DAY_MAP[date.getDay()];
+    days.push({
+      date,
+      dayCode,
+      dateStr: localDateString(date),
+      dateLabel: `${date.getMonth()+1}.${String(date.getDate()).padStart(2,'0')} (${['일','월','화','수','목','금','토'][date.getDay()]})`
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return days;
+}
+
+function getReportCandidates(query) {
+  const needle = normalizeName(query);
+  const map = new Map();
+  Object.entries(allSchedule).forEach(([dayCode, dayData]) => {
+    (dayData?.teachers || [])
+      .filter(t => !currentSubject || currentSubject.teachers.includes(t.name))
+      .forEach(t => {
+        (t.students || []).forEach(s => {
+          if (!s?.code || !normalizeName(s.name).includes(needle)) return;
+          if (!map.has(s.code)) map.set(s.code, { code: s.code, name: s.name || s.studentName || s.code, source: 'schedule' });
+        });
+      });
+  });
+  return [...map.values()];
+}
+
+function getScheduledLessonsForStudent(code, dayCode) {
+  const lessons = [];
+  const dayData = allSchedule[dayCode];
+  (dayData?.teachers || [])
+    .filter(t => !currentSubject || currentSubject.teachers.includes(t.name))
+    .forEach(t => {
+      const hasStudent = (t.students || []).some(s => s.code === code);
+      if (hasStudent) lessons.push({ teacher: t.name, time: t.time || t.slot || '' });
+    });
+  return lessons;
+}
+
+async function loadMonthAttendance(days) {
+  const byDate = new Map();
+  for (const day of days) {
+    const dayMap = new Map();
+    try {
+      const snap = await db.collection('attendance').doc(day.dateStr).collection('students').get();
+      snap.forEach(doc => dayMap.set(doc.id, { code: doc.id, ...doc.data() }));
+    } catch(e) { /* 기록이 없는 날짜는 빈 날짜로 처리 */ }
+    byDate.set(day.dateStr, dayMap);
+  }
+  return byDate;
+}
+
+async function runStudentReportSearch() {
+  const query = document.getElementById('studentReportInput').value.trim();
+  const body = document.getElementById('studentReportBody');
+  if (!query) {
+    body.className = 'report-message';
+    body.textContent = '학생 이름을 입력해주세요.';
+    return;
+  }
+
+  body.className = 'report-message';
+  body.textContent = '이번 달 출석 기록을 불러오는 중...';
+  const days = getMonthDaysToToday();
+  studentReportAttendance = await loadMonthAttendance(days);
+
+  const byCode = new Map(getReportCandidates(query).map(s => [s.code, s]));
+  const needle = normalizeName(query);
+  studentReportAttendance.forEach(dayMap => {
+    dayMap.forEach(s => {
+      const name = s.studentName || s.name || '';
+      if (s.code && normalizeName(name).includes(needle) && !byCode.has(s.code)) {
+        byCode.set(s.code, { code: s.code, name: name || s.code, source: 'attendance' });
+      }
+    });
+  });
+
+  studentReportChoices = [...byCode.values()]
+    .sort((a,b) => normalizeName(a.name).localeCompare(normalizeName(b.name)));
+
+  if (!studentReportChoices.length) {
+    body.innerHTML = `<div class="report-message">이번 달 기록이나 시간표에서 <strong>${escapeHtml(query)}</strong> 학생을 찾지 못했습니다.</div>`;
+    return;
+  }
+
+  const exact = studentReportChoices.find(s => normalizeName(s.name) === needle);
+  if (studentReportChoices.length === 1 || exact) {
+    renderStudentMonthlyReport(exact || studentReportChoices[0], days);
+    return;
+  }
+
+  body.className = '';
+  body.innerHTML = `
+    <div class="report-panel" style="margin-top:1rem">
+      <div class="report-panel-title">동명이인 또는 유사 이름을 선택하세요</div>
+      ${studentReportChoices.map((s, i) => `
+        <button class="teacher-btn" type="button" onclick="selectStudentReportChoice(${i})">
+          <div class="t-avatar">${escapeHtml((s.name || s.code)[0])}</div>
+          <div>
+            <div class="t-name">${escapeHtml(s.name)}</div>
+            <div class="t-days">코드 ${escapeHtml(s.code)}</div>
+          </div>
+        </button>`).join('')}
+    </div>`;
+}
+
+function selectStudentReportChoice(index) {
+  const selected = studentReportChoices[index];
+  if (!selected) return;
+  renderStudentMonthlyReport(selected, getMonthDaysToToday());
+}
+
+function renderStudentMonthlyReport(student, days) {
+  const rows = days.map(day => {
+    const lessons = getScheduledLessonsForStudent(student.code, day.dayCode);
+    const att = studentReportAttendance.get(day.dateStr)?.get(student.code);
+    const sessions = getSessions(att);
+    const attended = sessions.length > 0 || att?.manualComplete;
+    const scheduled = lessons.length > 0;
+    const total = att?.durationMinutes;
+    const ongoing = sessions.length > 0 && !sessions[sessions.length - 1].checkOut;
+    const status = attended ? (scheduled ? '출석' : '예정 외 출석') : (scheduled ? '결석' : '수업 없음');
+    return { ...day, lessons, att, sessions, attended, scheduled, total, ongoing, status };
+  });
+
+  const scheduledDays = rows.filter(r => r.scheduled).length;
+  const attendedScheduled = rows.filter(r => r.scheduled && r.attended).length;
+  const absentDays = rows.filter(r => r.scheduled && !r.attended).length;
+  const extraDays = rows.filter(r => !r.scheduled && r.attended).length;
+  const attendedDays = rows.filter(r => r.attended).length;
+  const totalMinutes = rows.reduce((sum, r) => sum + (Number.isFinite(r.total) ? r.total : 0), 0);
+  const rate = scheduledDays ? Math.round((attendedScheduled / scheduledDays) * 100) : 0;
+  const maxMinutes = Math.max(120, ...rows.map(r => r.total || 0));
+
+  document.getElementById('studentReportBody').className = '';
+  document.getElementById('studentReportBody').innerHTML = `
+    <div class="report-student-head">
+      <div class="report-student-name">${escapeHtml(student.name)} 학생</div>
+      <div class="report-student-meta">코드 ${escapeHtml(student.code)} · ${now.getMonth()+1}월 ${days.length}일간 분석</div>
+    </div>
+    <div class="report-summary-grid">
+      <div class="report-metric"><div class="report-metric-label">예정 수업일</div><div class="report-metric-value">${scheduledDays}일</div></div>
+      <div class="report-metric"><div class="report-metric-label">출석률</div><div class="report-metric-value">${rate}%</div></div>
+      <div class="report-metric"><div class="report-metric-label">출석 / 결석</div><div class="report-metric-value">${attendedScheduled}/${absentDays}</div></div>
+      <div class="report-metric"><div class="report-metric-label">총 공부시간</div><div class="report-metric-value">${fmt(totalMinutes)}</div></div>
+    </div>
+    <div class="report-panel">
+      <div class="report-panel-title">일별 공부시간</div>
+      <div class="month-bars">
+        ${rows.map(r => {
+          const height = r.attended ? Math.max(12, Math.round(((r.total || 8) / maxMinutes) * 118)) : (r.scheduled ? 14 : 8);
+          const cls = r.attended ? (r.scheduled ? 'attended' : 'extra') : (r.scheduled ? 'absent' : 'off');
+          return `<div class="month-bar-wrap" title="${escapeHtml(r.dateLabel)} · ${escapeHtml(r.status)} · ${r.total != null ? fmt(r.total) : '-'}">
+            <div class="month-bar ${cls}" style="height:${height}px"></div>
+            <div class="month-bar-label">${r.date.getDate()}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="report-legend">
+        <span><i class="legend-dot" style="background:#0f766e"></i>출석</span>
+        <span><i class="legend-dot" style="background:#fecaca"></i>결석</span>
+        <span><i class="legend-dot" style="background:#f97316"></i>예정 외 출석</span>
+        <span><i class="legend-dot" style="background:#cbd5e1"></i>수업 없음</span>
+      </div>
+    </div>
+    <div class="report-panel">
+      <div class="report-panel-title">날짜별 상세</div>
+      <table class="report-table">
+        <thead><tr><th>날짜</th><th>상태</th><th>수업</th><th>입실 → 퇴실</th><th>공부시간</th></tr></thead>
+        <tbody>
+          ${rows.filter(r => r.scheduled || r.attended).map(r => {
+            const badge = r.status === '출석' ? 'badge-out' : r.status === '결석' ? 'badge-absent' : 'badge-extra';
+            const lessonText = r.lessons.map(l => `${l.teacher}${l.time ? ` ${l.time}` : ''}`).join(' / ') || '-';
+            const sessionText = r.sessions.map(s => `${s.checkIn} → ${s.checkOut || '공부 중'}`).join(' / ') || '-';
+            const durationText = r.total != null ? fmt(r.total) : (r.ongoing ? '공부 중' : '-');
+            return `<tr>
+              <td>${escapeHtml(r.dateLabel)}</td>
+              <td><span class="${badge}">${r.status}</span></td>
+              <td>${escapeHtml(lessonText)}</td>
+              <td>${escapeHtml(sessionText)}</td>
+              <td>${escapeHtml(durationText)}</td>
+            </tr>`;
+          }).join('') || '<tr><td colspan="5">이번 달 표시할 수업 또는 출석 기록이 없습니다.</td></tr>'}
+        </tbody>
+      </table>
+      ${extraDays ? `<div class="report-entry-sub" style="margin-top:0.7rem">예정 외 출석 ${extraDays}일은 시간표에는 없지만 입실/퇴실 기록이 있는 날입니다.</div>` : ''}
+      ${attendedDays && !scheduledDays ? `<div class="report-entry-sub" style="margin-top:0.7rem">시간표 예정 수업은 찾지 못했지만, 출석 기록 기준으로 공부시간을 집계했습니다.</div>` : ''}
+    </div>`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
