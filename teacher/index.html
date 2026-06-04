@@ -519,7 +519,7 @@
 // ── 과목 정의 (admin/timetable.html과 동일) ─────────────────────────────────
 const SUBJECTS = [
   {key:'korean',  name:'국어', code:'1111', teachers:['설쌤','철원쌤','소진쌤']},
-  {key:'english', name:'영어', code:'2222', teachers:['주민쌤','문쌤','박쌤','경미쌤','오쌤']},
+  {key:'english', name:'영어', code:'2222', teachers:['주민쌤','문쌤','박쌤','경미쌤','오쌤','이영경쌤']},
   {key:'math',    name:'수학', code:'3333', teachers:['강쌤','민규쌤','의현쌤']},
   {key:'science', name:'과학', code:'4444', teachers:['선엽쌤','신쌤']},
   {key:'history', name:'역사', code:'5555', teachers:['역사1','역사2','역사3','역사4']},
@@ -529,6 +529,7 @@ const DAY_CODES  = ['mon','tue','wed','thu','fri','sat'];
 const DAY_KR     = {mon:'월',tue:'화',wed:'수',thu:'목',fri:'금',sat:'토'};
 const DAY_LABEL  = {mon:'월요일',tue:'화요일',wed:'수요일',thu:'목요일',fri:'금요일',sat:'토요일'};
 const JS_DAY_MAP = ['sun','mon','tue','wed','thu','fri','sat'];
+const ENGLISH_SUPERVISOR = '이영경쌤';
 
 const now        = new Date();
 const todayCode  = JS_DAY_MAP[now.getDay()];
@@ -653,7 +654,9 @@ function renderTeacherList() {
 
   currentSubject.teachers.forEach(name => {
     // 오늘 담당 학생 수 계산
-    const todaySlots = (allSchedule[todayCode]?.teachers || []).filter(t => t.name === name);
+    const todaySlots = isEnglishSupervisorName(name)
+      ? getTodaySubjectSlots('english')
+      : (allSchedule[todayCode]?.teachers || []).filter(t => t.name === name);
     const todayCount = new Set(todaySlots.flatMap(t => (t.students||[]).map(s=>s.code))).size;
 
     const btn = document.createElement('button');
@@ -662,7 +665,7 @@ function renderTeacherList() {
       <div class="t-avatar">👨‍🏫</div>
       <div>
         <div class="t-name">${name} 선생님</div>
-        <div class="t-days">오늘 담당 ${todayCount}명</div>
+        <div class="t-days">${isEnglishSupervisorName(name) ? '오늘 영어 전체' : '오늘 담당'} ${todayCount}명</div>
       </div>
     `;
     btn.onclick = () => selectTeacher(name);
@@ -673,15 +676,18 @@ function renderTeacherList() {
 // ── 선생님 선택 ───────────────────────────────────────────────────────────────
 function selectTeacher(name, options = {}) {
   currentTeacher = name;
-  document.getElementById('headerTitle').textContent = `${name} 선생님`;
-  document.getElementById('headerSub').textContent = dateLabel;
+  const supervisorView = isSupervisorView();
+  document.getElementById('headerTitle').textContent = supervisorView ? '영어 전체 수업 현황' : `${name} 선생님`;
+  document.getElementById('headerSub').textContent = supervisorView ? `${dateLabel} · 이영경 선생님 감독 뷰` : dateLabel;
   document.getElementById('backBtn').style.display = 'block';
   document.getElementById('refreshBtn').style.display = 'block';
-  document.getElementById('historyBtn').style.display = 'block';
+  document.getElementById('historyBtn').style.display = supervisorView ? 'none' : 'block';
   document.getElementById('selectPage').style.display = 'none';
   document.getElementById('mainPage').style.display = 'block';
   document.getElementById('todayBar').textContent =
-    `📅 ${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일) · 오늘 수업`;
+    supervisorView
+      ? `📅 ${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일) · 오늘 영어 전체 수업`
+      : `📅 ${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일) · 오늘 수업`;
   if (!options.fromHistory) {
     const url = new URL(location.href);
     url.searchParams.set('teacher', name);
@@ -775,18 +781,44 @@ window.addEventListener('popstate', event => {
 });
 
 // ── 오늘 수업 콘텐츠 로드 ─────────────────────────────────────────────────────
-function loadTodayContent() {
-  const dayData = allSchedule[todayCode];
-  const teacherSlots = (dayData?.teachers || []).filter(t => t.name === currentTeacher);
+function isEnglishSupervisorName(name) {
+  return name === ENGLISH_SUPERVISOR;
+}
+
+function isSupervisorView() {
+  return currentSubject?.key === 'english' && currentTeacher === ENGLISH_SUPERVISOR;
+}
+
+function getTodaySubjectSlots(subjectKey) {
+  const subject = SUBJECTS.find(s => s.key === subjectKey);
+  if (!subject) return [];
+  return (allSchedule[todayCode]?.teachers || [])
+    .filter(t => subject.teachers.includes(t.name) && t.name !== ENGLISH_SUPERVISOR);
+}
+
+function getTodayStudentsForCurrentView() {
+  const teacherSlots = isSupervisorView()
+    ? getTodaySubjectSlots('english')
+    : (allSchedule[todayCode]?.teachers || []).filter(t => t.name === currentTeacher);
   const studentMap = new Map();
-  teacherSlots.flatMap(t => t.students || []).forEach(s => {
-    if (s.code && !studentMap.has(s.code)) studentMap.set(s.code, s);
+  teacherSlots.forEach(slot => {
+    (slot.students || []).forEach(s => {
+      if (!s.code) return;
+      const existing = studentMap.get(s.code) || { ...s, lessonTimes: [] };
+      const lessonTime = slot.time || slot.slot || '';
+      if (lessonTime && !existing.lessonTimes.includes(lessonTime)) existing.lessonTimes.push(lessonTime);
+      studentMap.set(s.code, existing);
+    });
   });
-  const students = [...studentMap.values()];
+  return [...studentMap.values()];
+}
+
+function loadTodayContent() {
+  const students = getTodayStudentsForCurrentView();
 
   if (!students.length) {
     document.getElementById('tabContent').innerHTML =
-      `<div class="off-day"><div class="icon">📅</div>오늘은 수업이 없습니다.</div>`;
+      `<div class="off-day"><div class="icon">📅</div>${isSupervisorView() ? '오늘 영어 수업이 없습니다.' : '오늘은 수업이 없습니다.'}</div>`;
     return;
   }
 
@@ -839,7 +871,7 @@ function renderCard(s, avatarClass) {
   const short = !isOngoing && totalMin != null && totalMin < 90;
   const totalClass = isOngoing ? 'studying' : (short ? 'short' : 'done');
   const totalLabel = isOngoing ? '공부 중' : fmt(totalMin);
-  const checkoutBtn = isOngoing
+  const checkoutBtn = isOngoing && !isSupervisorView()
     ? `<button class="btn-force-checkout" onclick="event.stopPropagation();forceCheckout('${s.code}','${s.name}')">퇴실 처리</button>`
     : '';
   return `
@@ -878,20 +910,21 @@ function renderAllSections(allStudents) {
         <div class="s-avatar av-pending">${s.name[0]}</div>
         <div class="s-name">${s.name}</div>
       </div>
-      <button class="btn-complete" onclick="event.stopPropagation();markComplete('${s.code}','${s.name}')">수업 완료</button>
+      ${isSupervisorView() && s.lessonTimes?.length ? `<div class="s-info"><div class="s-session">${s.lessonTimes.join(' / ')}</div></div>` : ''}
+      ${isSupervisorView() ? '' : `<button class="btn-complete" onclick="event.stopPropagation();markComplete('${s.code}','${s.name}')">수업 완료</button>`}
     </div>`).join('') || '<div class="empty-msg">모든 학생이 입실했습니다 ✅</div>';
 
   const cardIn  = checkedIn.map(s  => renderCard(s,  'av-in')).join('')  || '<div class="empty-msg">입실한 학생이 없습니다</div>';
   const cardOut = checkedOut.map(s => renderCard(s, 'av-out')).join('') || '<div class="empty-msg">퇴실한 학생이 없습니다</div>';
 
   el.innerHTML = `
-    <div class="section-title">수업할 학생 <span class="section-badge">${pending.length}</span></div>
+    <div class="section-title">${isSupervisorView() ? '오늘 영어 수업 예정 학생' : '수업할 학생'} <span class="section-badge">${pending.length}</span></div>
     ${cardPending}
     <div class="section-divider"></div>
-    <div class="section-title">입실 <span class="section-badge in">${checkedIn.length}</span></div>
+    <div class="section-title">${isSupervisorView() ? '현재 영어 수업 중' : '입실'} <span class="section-badge in">${checkedIn.length}</span></div>
     ${cardIn}
     <div class="section-divider"></div>
-    <div class="section-title">퇴실 <span class="section-badge out">${checkedOut.length}</span></div>
+    <div class="section-title">${isSupervisorView() ? '이미 퇴실한 학생' : '퇴실'} <span class="section-badge out">${checkedOut.length}</span></div>
     ${cardOut}
   `;
 }
@@ -903,6 +936,7 @@ function startAttendanceListener(students) {
   unsubscribe = db.collection('attendance').doc(todayStr)
     .collection('students')
     .onSnapshot(snap => {
+      attendanceData = {};
       snap.forEach(doc => { attendanceData[doc.id] = doc.data(); });
       renderAllSections(students);
     });
