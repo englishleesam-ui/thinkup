@@ -23,16 +23,15 @@
       height: 100vh;
       background: linear-gradient(160deg, #065f46 0%, #059669 50%, #34d399 100%);
       display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      padding: 2rem 1.5rem;
+      align-items: center; justify-content: flex-start;
+      padding: min(5vh, 2rem) 1.5rem 1rem;
     }
 
-    .logo { color: rgba(255,255,255,0.9); font-size: 1.6rem; font-weight: 800; margin-bottom: 0.3rem; }
     .welcome {
       color: white; font-size: 1.4rem; font-weight: 600;
       margin-bottom: 0.5rem; text-align: center;
     }
-    .welcome-sub { color: rgba(255,255,255,0.75); font-size: 1rem; margin-bottom: 2.5rem; text-align: center; }
+    .welcome-sub { color: rgba(255,255,255,0.75); font-size: 1rem; margin-bottom: 1.8rem; text-align: center; }
 
     /* 코드 입력 디스플레이 */
     .code-display {
@@ -51,7 +50,7 @@
     /* 키패드 */
     .keypad {
       display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 0.8rem; width: 100%; max-width: 320px;
+      gap: 0.8rem; width: 100%; max-width: min(320px, 82vh);
     }
     .key {
       background: rgba(255,255,255,0.2);
@@ -169,14 +168,21 @@
       .msg-text { font-size: 1.6rem; }
       .msg-highlight { font-size: 4rem; }
     }
+    @media (max-height: 620px) {
+      #mainScreen { padding-top: 0.7rem; }
+      .welcome { font-size: 1.25rem; margin-bottom: 0.25rem; }
+      .welcome-sub { font-size: 0.9rem; margin-bottom: 0.8rem; }
+      .code-display { padding: 0.7rem 1.5rem; margin-bottom: 0.8rem; }
+      .keypad { gap: 0.45rem; max-width: min(300px, 74vh); }
+      .key { padding: 0.7rem; border-radius: 12px; font-size: 1.35rem; }
+    }
   </style>
 </head>
 <body>
 
 <!-- 메인 화면 (코드 입력) -->
 <div id="mainScreen">
-  <div class="logo">ThinkUp</div>
-  <div class="welcome">환영합니다!</div>
+  <div class="welcome">이샘 학원은 여러분을 환영합니다!</div>
   <div class="welcome-sub">코드를 눌러주세요</div>
 
   <div class="code-display" id="codeDisplay">
