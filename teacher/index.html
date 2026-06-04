@@ -65,8 +65,9 @@
       display: flex; align-items: center; justify-content: space-between;
       position: sticky; top: 0; z-index: 10;
     }
-    .header-info h1 { font-size: 1.05rem; font-weight: 700; }
-    .header-info .sub { font-size: 0.78rem; opacity: 0.65; margin-top: 0.1rem; }
+    .header-info { min-width: 0; }
+    .header-info h1 { font-size: 1.12rem; font-weight: 800; line-height: 1.25; }
+    .header-info .sub { font-size: 0.78rem; opacity: 0.78; margin-top: 0.18rem; line-height: 1.35; }
     .header-right { display: flex; gap: 0.5rem; align-items: center; }
     .back-btn, .logout-btn, .refresh-btn {
       background: rgba(255,255,255,0.15); color: white;
@@ -401,7 +402,7 @@
 <div id="loginScreen">
   <div class="login-card">
     <div class="login-logo">👨‍🏫</div>
-    <div class="login-title">ThinkUp 선생님</div>
+    <div class="login-title">이샘 학원 선생님</div>
     <p class="login-sub">과목을 선택하고 비밀번호를 입력하세요</p>
     <div class="login-field">
       <label>과목 선택</label>
@@ -533,6 +534,8 @@ const now        = new Date();
 const todayCode  = JS_DAY_MAP[now.getDay()];
 const todayStr   = now.toISOString().split('T')[0];
 const dateLabel  = `${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일)`;
+const greetingTitle = '이샘 학원 선생님!';
+const greetingSub = `오늘은 ${now.getMonth()+1}월 ${now.getDate()}일, ${DAY_KR[todayCode] || ''}요일입니다. 수업 멋지게 시작하시기 바랍니다!`;
 
 // ── 상태 ─────────────────────────────────────────────────────────────────────
 let currentSubject = null;
@@ -541,7 +544,8 @@ let allSchedule    = {};
 let attendanceData = {};
 let unsubscribe    = null;
 
-document.getElementById('headerSub').textContent = dateLabel;
+document.getElementById('headerTitle').textContent = greetingTitle;
+document.getElementById('headerSub').textContent = greetingSub;
 
 // ── 과목 드롭다운 채우기 ─────────────────────────────────────────────────────
 document.getElementById('subjectSelect').innerHTML =
@@ -590,7 +594,8 @@ function doLogout() {
   allSchedule    = {};
   attendanceData = {};
   document.getElementById('backBtn').style.display = 'none';
-  document.getElementById('headerTitle').textContent = 'ThinkUp 선생님';
+  document.getElementById('headerTitle').textContent = greetingTitle;
+  document.getElementById('headerSub').textContent = greetingSub;
   document.getElementById('mainPage').style.display = 'none';
   document.getElementById('selectPage').style.display = 'block';
   document.getElementById('teacherList').innerHTML = '<div class="no-data">불러오는 중...</div>';
@@ -669,6 +674,7 @@ function renderTeacherList() {
 function selectTeacher(name, options = {}) {
   currentTeacher = name;
   document.getElementById('headerTitle').textContent = `${name} 선생님`;
+  document.getElementById('headerSub').textContent = dateLabel;
   document.getElementById('backBtn').style.display = 'block';
   document.getElementById('refreshBtn').style.display = 'block';
   document.getElementById('historyBtn').style.display = 'block';
@@ -748,7 +754,8 @@ function goBack(options = {}) {
   document.getElementById('backBtn').style.display = 'none';
   document.getElementById('refreshBtn').style.display = 'none';
   document.getElementById('historyBtn').style.display = 'none';
-  document.getElementById('headerTitle').textContent = 'ThinkUp 선생님';
+  document.getElementById('headerTitle').textContent = greetingTitle;
+  document.getElementById('headerSub').textContent = greetingSub;
   document.getElementById('mainPage').style.display = 'none';
   document.getElementById('selectPage').style.display = 'block';
   if (!options.fromHistory) {
