@@ -25,25 +25,27 @@
       background: linear-gradient(160deg, #065f46 0%, #059669 50%, #34d399 100%);
       display: flex; flex-direction: column;
       align-items: center; justify-content: flex-start;
-      padding: min(5vh, 2rem) 1.5rem 1rem;
+      padding: min(6vh, 2.4rem) 1.5rem 1rem;
+      position: relative;
     }
 
     .welcome {
       color: white; font-size: 1.4rem; font-weight: 600;
-      margin-bottom: 0.5rem; text-align: center;
+      margin-bottom: 0.55rem; text-align: center;
     }
-    .welcome-sub { color: rgba(255,255,255,0.75); font-size: 1rem; margin-bottom: 1.8rem; text-align: center; }
+    .welcome-sub { color: rgba(255,255,255,0.75); font-size: 1rem; margin-bottom: 0.9rem; text-align: center; }
 
     /* 코드 입력 디스플레이 */
     .code-display {
       background: rgba(255,255,255,0.2);
-      border-radius: 16px; padding: 1rem 2rem;
-      margin-bottom: 1.5rem; min-width: 200px;
+      border-radius: 14px; padding: 0.65rem 0.85rem;
+      min-width: 150px;
       display: flex; align-items: center; justify-content: center; gap: 0.8rem;
+      position: absolute; top: 0.9rem; left: 0.9rem;
     }
     .code-dot {
-      width: 18px; height: 18px; border-radius: 50%;
-      border: 2.5px solid rgba(255,255,255,0.6);
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,0.65);
       background: transparent; transition: background 0.15s;
     }
     .code-dot.filled { background: white; border-color: white; }
@@ -170,12 +172,12 @@
       .msg-highlight { font-size: 4rem; }
     }
     @media (max-height: 620px) {
-      #mainScreen { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+      #mainScreen { padding-top: 0.45rem; padding-bottom: 0.25rem; }
       .welcome { font-size: 1.12rem; margin-bottom: 0.15rem; }
       .welcome-sub { font-size: 0.82rem; margin-bottom: 0.45rem; }
-      .code-display { padding: 0.45rem 1.25rem; margin-bottom: 0.45rem; border-radius: 12px; }
-      .code-dot { width: 14px; height: 14px; }
-      .keypad { gap: 0.34rem; max-width: min(280px, 62vh); }
+      .code-display { top: 0.45rem; left: 0.45rem; padding: 0.45rem 0.65rem; min-width: 120px; gap: 0.55rem; border-radius: 12px; }
+      .code-dot { width: 18px; height: 18px; }
+      .keypad { gap: 0.34rem; max-width: min(300px, 68vh); }
       .key { padding: 0.45rem; border-radius: 10px; font-size: 1.18rem; }
     }
   </style>
@@ -184,15 +186,15 @@
 
 <!-- 메인 화면 (코드 입력) -->
 <div id="mainScreen">
-  <div class="welcome">이샘 학원은 여러분을 환영합니다!</div>
-  <div class="welcome-sub">코드를 눌러주세요</div>
-
   <div class="code-display" id="codeDisplay">
     <div class="code-dot" id="d0"></div>
     <div class="code-dot" id="d1"></div>
     <div class="code-dot" id="d2"></div>
     <div class="code-dot" id="d3"></div>
   </div>
+
+  <div class="welcome">이샘 학원은 여러분을 환영합니다!</div>
+  <div class="welcome-sub">코드를 눌러주세요</div>
 
   <div class="keypad">
     <button class="key" onclick="press('1')">1</button>
