@@ -130,6 +130,20 @@
       color: white; font-size: 1.35rem; font-weight: 700;
       line-height: 1.7; max-width: 380px;
     }
+    .msg-highlight {
+      display: none;
+      margin-top: 0.9rem;
+      color: #ff1f1f;
+      background: rgba(255,255,255,0.92);
+      border: 4px solid rgba(255,255,255,0.75);
+      border-radius: 18px;
+      padding: 0.75rem 1.35rem;
+      font-size: 3.2rem;
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: 0;
+      box-shadow: 0 14px 34px rgba(0,0,0,0.25);
+    }
     .msg-sub {
       color: rgba(255,255,255,0.8); font-size: 1rem;
       margin-top: 1rem; font-weight: 400;
@@ -153,6 +167,7 @@
       .key { font-size: 1.8rem; padding: 1.3rem; }
       .keypad { max-width: 360px; }
       .msg-text { font-size: 1.6rem; }
+      .msg-highlight { font-size: 4rem; }
     }
   </style>
 </head>
@@ -191,6 +206,7 @@
 <div id="msgScreen">
   <div class="msg-icon" id="msgIcon"></div>
   <div class="msg-text" id="msgText"></div>
+  <div class="msg-highlight" id="msgHighlight"></div>
   <div class="msg-sub" id="msgSub"></div>
   <div class="msg-timer">
     <div id="timerTxt">5초 후 자동으로 돌아갑니다</div>
@@ -337,7 +353,7 @@ async function confirmAttendance() {
           durationMinutes: null
         });
       }
-      showMessage('✅', `${pending.student.name} 학생은\n${timeStr}에 입실하였습니다`, '', 'checkin');
+      showMessage('✅', `${pending.student.name} 학생 입실 완료`, '', 'checkin', timeStr);
       return;
     }
 
@@ -367,9 +383,10 @@ async function confirmAttendance() {
       isShort ? '⚠️' : '👋',
       isShort ? `아직 공부량이 부족합니다.` : `${pending.student.name} 학생, 수고하셨습니다!`,
       isShort
-        ? `오늘 총 공부 시간: ${durStr}\n1시간 30분을 채워주세요.`
-        : `오늘 총 공부 시간: ${durStr}`,
-      isShort ? 'checkout-short' : 'checkout'
+        ? `1시간 30분을 채워주세요.`
+        : `오늘 학습을 잘 마쳤습니다.`,
+      isShort ? 'checkout-short' : 'checkout',
+      durStr
     );
   } catch (err) {
     showMessage('⚠️', '오류가 발생했습니다.', err.message, 'error');
@@ -381,7 +398,7 @@ function cancelAttendance() {
   resetScreen();
 }
 
-function showMessage(icon, text, sub, type) {
+function showMessage(icon, text, sub, type, highlight = '') {
   const msg = document.getElementById('msgScreen');
   document.getElementById('mainScreen').style.display = 'none';
   document.getElementById('confirmScreen').style.display = 'none';
@@ -389,6 +406,9 @@ function showMessage(icon, text, sub, type) {
   msg.className = type;
   document.getElementById('msgIcon').textContent = icon;
   document.getElementById('msgText').textContent = text;
+  const highlightEl = document.getElementById('msgHighlight');
+  highlightEl.textContent = highlight;
+  highlightEl.style.display = highlight ? 'block' : 'none';
   document.getElementById('msgSub').textContent = sub;
 
   // 타이머 바 애니메이션
