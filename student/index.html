@@ -66,6 +66,10 @@
     }
     .key:active { background: rgba(255,255,255,0.4); transform: scale(0.95); }
     .key.del { font-size: 1.2rem; }
+    .key.time-check {
+      font-size: 0.9rem; line-height: 1.2; font-weight: 800;
+      background: rgba(255,255,255,0.28);
+    }
     .key.empty { background: transparent; cursor: default; }
     .key.empty:active { transform: none; }
 
@@ -179,6 +183,7 @@
       .code-dot { width: 18px; height: 18px; }
       .keypad { gap: 0.34rem; max-width: min(300px, 68vh); }
       .key { padding: 0.45rem; border-radius: 10px; font-size: 1.18rem; }
+      .key.time-check { font-size: 0.72rem; }
     }
   </style>
 </head>
@@ -194,7 +199,7 @@
   </div>
 
   <div class="welcome">이샘 학원은 여러분을 환영합니다!</div>
-  <div class="welcome-sub">코드를 눌러주세요</div>
+  <div class="welcome-sub" id="welcomeSub">코드를 눌러주세요</div>
 
   <div class="keypad">
     <button class="key" onclick="press('1')">1</button>
@@ -206,7 +211,7 @@
     <button class="key" onclick="press('7')">7</button>
     <button class="key" onclick="press('8')">8</button>
     <button class="key" onclick="press('9')">9</button>
-    <button class="key empty"></button>
+    <button class="key time-check" onclick="startTimeCheck()">시간<br>체크</button>
     <button class="key" onclick="press('0')">0</button>
     <button class="key del" onclick="del()">←</button>
   </div>
@@ -240,9 +245,13 @@ let code = '';
 let processing = false;
 let resetTimer = null;
 let pendingAttendance = null;
+let timeCheckMode = false;
 
 function toDateStr(d) {
-  return d.toISOString().split('T')[0];
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 function formatTime(d) {
   return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -258,6 +267,14 @@ function updateDots() {
   for (let i = 0; i < 4; i++) {
     document.getElementById('d' + i).classList.toggle('filled', i < code.length);
   }
+}
+
+function startTimeCheck() {
+  if (processing) return;
+  code = '';
+  timeCheckMode = true;
+  updateDots();
+  document.getElementById('welcomeSub').textContent = '시간 체크할 코드를 눌러주세요';
 }
 
 function press(n) {
@@ -299,6 +316,11 @@ async function submitCode() {
     const attendRef = db.collection('attendance').doc(today).collection('students').doc(enteredCode);
     const attendDoc = await attendRef.get();
 
+    if (timeCheckMode) {
+      showStudyTime(student, attendDoc.exists ? attendDoc.data() : null);
+      return;
+    }
+
     const sessions = getActiveSessions(attendDoc.exists ? attendDoc.data() : null);
     const lastSession = sessions[sessions.length - 1];
     if (!lastSession || lastSession.checkOut) {
@@ -309,6 +331,43 @@ async function submitCode() {
   } catch (err) {
     showMessage('⚠️', '오류가 발생했습니다.', err.message, 'error');
   }
+}
+
+function minutesFromCheckIn(checkIn, now) {
+  if (!checkIn) return 0;
+  const [hour, minute] = checkIn.split(':').map(v => parseInt(v, 10));
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return 0;
+  const checkInDate = new Date(now);
+  checkInDate.setHours(hour, minute, 0, 0);
+  return Math.max(0, Math.round((now - checkInDate) / 60000));
+}
+
+function getCurrentStudyMinutes(att) {
+  const sessions = getActiveSessions(att);
+  if (!sessions.length) return { minutes: 0, status: 'none' };
+  const now = new Date();
+  const total = sessions.reduce((sum, session, index) => {
+    if (session.durationMinutes != null) return sum + session.durationMinutes;
+    if (index === sessions.length - 1 && !session.checkOut) return sum + minutesFromCheckIn(session.checkIn, now);
+    return sum;
+  }, 0);
+  const lastSession = sessions[sessions.length - 1];
+  return { minutes: total, status: lastSession && !lastSession.checkOut ? 'studying' : 'done' };
+}
+
+function showStudyTime(student, att) {
+  const result = getCurrentStudyMinutes(att);
+  if (result.status === 'none') {
+    showMessage('ℹ️', `${student.name} 학생`, '오늘 입실 기록이 아직 없습니다.', 'error');
+    return;
+  }
+  showMessage(
+    result.status === 'studying' ? '⏱️' : '✅',
+    `${student.name} 학생`,
+    result.status === 'studying' ? '현재까지 공부한 시간입니다.' : '오늘 기록된 학습 시간입니다.',
+    result.status === 'studying' ? 'checkin' : 'checkout',
+    formatDuration(result.minutes)
+  );
 }
 
 function showConfirmation(student, enteredCode, today, attendRef, action) {
@@ -438,7 +497,9 @@ function resetScreen() {
   code = '';
   processing = false;
   pendingAttendance = null;
+  timeCheckMode = false;
   updateDots();
+  document.getElementById('welcomeSub').textContent = '코드를 눌러주세요';
   document.getElementById('msgScreen').style.display = 'none';
   document.getElementById('confirmScreen').style.display = 'none';
   document.getElementById('mainScreen').style.display = 'flex';
