@@ -260,6 +260,11 @@
     }
     .daily-name { font-weight: 900; color: #0f172a; }
     .daily-code { color: #94a3b8; font-size: 0.72rem; margin-top: 0.14rem; }
+    .daily-checkout-btn {
+      background: #eff6ff; color: #1d4ed8; border: 1.5px solid #bfdbfe; border-radius: 8px;
+      padding: 0.34rem 0.62rem; font-size: 0.74rem; font-weight: 900; cursor: pointer; white-space: nowrap;
+    }
+    .daily-checkout-btn:active { background: #dbeafe; }
     @media (max-width: 640px) {
       .header-right { gap: 0.35rem; }
       .report-entry { align-items: stretch; flex-direction: column; }
@@ -770,6 +775,7 @@ async function forceCheckout(code, name) {
     await ref.update({
       sessions: updatedSessions,
       checkOut: timeStr,
+      checkOutTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
       durationMinutes: totalMinutes
     });
   } catch(e) {
@@ -1182,7 +1188,7 @@ function renderDailyReport(students) {
     <div class="report-panel">
       <div class="report-panel-title">오늘 입실 / 퇴실 현황</div>
       <table class="report-table history-table">
-        <thead><tr><th>학생</th><th>상태</th><th>입실 시각</th><th>퇴실 시각</th><th>학습 시간</th></tr></thead>
+        <thead><tr><th>학생</th><th>상태</th><th>입실 시각</th><th>퇴실 시각</th><th>학습 시간</th><th>처리</th></tr></thead>
         <tbody>
           ${rows.map(r => {
             const latestCheckIn = r.last?.checkIn || r.checkIn || '-';
@@ -1190,12 +1196,16 @@ function renderDailyReport(students) {
             const durationText = r.isIn ? '공부 중' : (r.sessions.length ? fmt(r.totalMinutes) : '-');
             const statusBadge = r.isIn ? '<span class="badge-in">입실</span>' : '<span class="badge-out">퇴실</span>';
             const short = !r.isIn && r.sessions.length && r.totalMinutes < 90;
+            const actionCell = r.isIn
+              ? `<button class="daily-checkout-btn" onclick="forceCheckout(decodeURIComponent('${encodeURIComponent(r.code)}'),decodeURIComponent('${encodeURIComponent(r.name)}'))">퇴실 완료</button>`
+              : '-';
             return `<tr class="${short ? 'short-row' : ''}">
               <td><div class="daily-name">${escapeHtml(r.name)}</div><div class="daily-code">코드 ${escapeHtml(r.code)}</div></td>
               <td>${statusBadge}</td>
               <td>${escapeHtml(latestCheckIn)}</td>
               <td>${escapeHtml(latestCheckOut || '-')}</td>
               <td>${escapeHtml(durationText)}</td>
+              <td>${actionCell}</td>
             </tr>`;
           }).join('')}
         </tbody>
