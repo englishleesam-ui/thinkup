@@ -173,11 +173,13 @@
     }
     .report-entry-title { font-size: 0.96rem; font-weight: 800; color: #0f172a; }
     .report-entry-sub { font-size: 0.78rem; color: #64748b; margin-top: 0.18rem; line-height: 1.35; }
-    #studentReportOverlay {
+    #studentReportOverlay,
+    #dailyReportOverlay {
       display: none; position: fixed; inset: 0; z-index: 210;
       background: #eef4f6; flex-direction: column;
     }
-    #studentReportOverlay.active { display: flex; }
+    #studentReportOverlay.active,
+    #dailyReportOverlay.active { display: flex; }
     .report-header {
       background: #123047; color: white; padding: 1rem 1.2rem;
       display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; flex-shrink: 0;
@@ -252,6 +254,12 @@
     .report-table th { text-align: left; padding: 0.55rem 0.45rem; color: #64748b; border-bottom: 1px solid #e2e8f0; font-size: 0.72rem; }
     .report-table td { padding: 0.62rem 0.45rem; color: #1e293b; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
     .report-table tr:last-child td { border-bottom: none; }
+    .daily-report-head {
+      margin-bottom: 0.85rem; background: white; border: 1px solid #e2e8f0; border-radius: 16px;
+      padding: 1rem; box-shadow: 0 2px 9px rgba(15,23,42,0.05);
+    }
+    .daily-name { font-weight: 900; color: #0f172a; }
+    .daily-code { color: #94a3b8; font-size: 0.72rem; margin-top: 0.14rem; }
     @media (max-width: 640px) {
       .header-right { gap: 0.35rem; }
       .report-entry { align-items: stretch; flex-direction: column; }
@@ -445,6 +453,13 @@
   <div style="padding:0 1rem">
     <div class="report-entry">
       <div>
+        <div class="report-entry-title">학생 일간 관리</div>
+        <div class="report-entry-sub">오늘 코드 입력 학생의 입실·퇴실과 공부시간을 확인합니다.</div>
+      </div>
+      <button class="report-btn" onclick="openDailyReport()">현황 보기</button>
+    </div>
+    <div class="report-entry">
+      <div>
         <div class="report-entry-title">학생 월간 리포트</div>
         <div class="report-entry-sub">이름으로 이번 달 출석일과 공부시간을 확인합니다.</div>
       </div>
@@ -483,6 +498,20 @@
     </div>
   </div>
   <div id="historyBody"><div class="history-loading">불러오는 중...</div></div>
+</div>
+
+<!-- ── 학생 일간 관리 오버레이 ── -->
+<div id="dailyReportOverlay">
+  <div class="report-header">
+    <div>
+      <h2>학생 일간 관리</h2>
+      <div class="sub" id="dailyReportSub"></div>
+    </div>
+    <button class="report-close" onclick="closeDailyReport()">✕ 닫기</button>
+  </div>
+  <div class="report-body">
+    <div id="dailyReportBody" class="report-message">오늘 출석 기록을 불러오는 중...</div>
+  </div>
 </div>
 
 <!-- ── 학생 월간 리포트 오버레이 ── -->
@@ -533,7 +562,7 @@ const ENGLISH_SUPERVISOR = '이영경쌤';
 
 const now        = new Date();
 const todayCode  = JS_DAY_MAP[now.getDay()];
-const todayStr   = now.toISOString().split('T')[0];
+const todayStr   = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 const dateLabel  = `${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일)`;
 const greetingTitle = '이샘 학원 선생님!';
 const greetingSub = `오늘은 ${now.getMonth()+1}월 ${now.getDate()}일, ${DAY_KR[todayCode] || ''}요일입니다. 수업 멋지게 시작하시기 바랍니다!`;
@@ -544,6 +573,7 @@ let currentTeacher = null;
 let allSchedule    = {};
 let attendanceData = {};
 let unsubscribe    = null;
+let dailyReportUnsubscribe = null;
 
 document.getElementById('headerTitle').textContent = greetingTitle;
 document.getElementById('headerSub').textContent = greetingSub;
@@ -589,6 +619,7 @@ function doLogin() {
 
 function doLogout() {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  if (dailyReportUnsubscribe) { dailyReportUnsubscribe(); dailyReportUnsubscribe = null; }
   sessionStorage.removeItem('thinkup_teacher_subject');
   currentSubject = null;
   currentTeacher = null;
@@ -719,7 +750,7 @@ async function forceCheckout(code, name) {
   try {
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    const todayStr = now.toISOString().split('T')[0];
+    const todayStr = localDateString(now);
     const ref = db.collection('attendance').doc(todayStr).collection('students').doc(code);
     const snap = await ref.get();
     if (!snap.exists) return;
@@ -1071,6 +1102,106 @@ function downloadExcel() {
   const now = new Date();
   const fname = `출석기록_${currentTeacher}_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}.xlsx`;
   XLSX.writeFile(wb, fname);
+}
+
+// ── 학생 일간 관리 ───────────────────────────────────────────────────────────
+function getTodayAttendanceDateStr() {
+  return typeof localDateString === 'function' ? localDateString(new Date()) : todayStr;
+}
+
+function openDailyReport() {
+  const dateStr = getTodayAttendanceDateStr();
+  document.getElementById('dailyReportOverlay').classList.add('active');
+  document.getElementById('dailyReportSub').textContent =
+    `${currentSubject?.name || '전체'} · ${dateLabel} · 코드 입력 전체 학생`;
+  document.getElementById('dailyReportBody').className = 'report-message';
+  document.getElementById('dailyReportBody').textContent = '오늘 출석 기록을 불러오는 중...';
+
+  if (dailyReportUnsubscribe) dailyReportUnsubscribe();
+  dailyReportUnsubscribe = db.collection('attendance').doc(dateStr)
+    .collection('students')
+    .onSnapshot(snap => {
+      const students = [];
+      snap.forEach(doc => students.push({ code: doc.id, ...doc.data() }));
+      renderDailyReport(students);
+    }, err => {
+      document.getElementById('dailyReportBody').className = 'report-message';
+      document.getElementById('dailyReportBody').textContent = '오늘 출석 기록을 불러오지 못했습니다. 잠시 후 다시 열어주세요.';
+      console.error(err);
+    });
+}
+
+function closeDailyReport() {
+  if (dailyReportUnsubscribe) {
+    dailyReportUnsubscribe();
+    dailyReportUnsubscribe = null;
+  }
+  document.getElementById('dailyReportOverlay').classList.remove('active');
+}
+
+function getDailyTotalMinutes(att, sessions) {
+  if (Number.isFinite(att?.durationMinutes)) return att.durationMinutes;
+  return sessions.reduce((sum, s) => sum + (Number.isFinite(s.durationMinutes) ? s.durationMinutes : 0), 0);
+}
+
+function renderDailyReport(students) {
+  const body = document.getElementById('dailyReportBody');
+  if (!students.length) {
+    body.className = 'report-message';
+    body.textContent = '오늘 코드가 입력된 학생 기록이 아직 없습니다.';
+    return;
+  }
+
+  const rows = students.map(s => {
+    const sessions = getSessions(s);
+    const last = sessions[sessions.length - 1] || null;
+    const isIn = !!last && !last.checkOut;
+    const totalMinutes = getDailyTotalMinutes(s, sessions);
+    const name = s.studentName || s.name || s.code;
+    return { ...s, sessions, last, isIn, totalMinutes, name };
+  }).sort((a, b) => {
+    if (a.isIn !== b.isIn) return a.isIn ? -1 : 1;
+    const aTime = a.last?.checkIn || '';
+    const bTime = b.last?.checkIn || '';
+    if (aTime !== bTime) return aTime.localeCompare(bTime);
+    return normalizeName(a.name).localeCompare(normalizeName(b.name));
+  });
+
+  const inCount = rows.filter(r => r.isIn).length;
+  const outCount = rows.filter(r => !r.isIn && r.sessions.length).length;
+  const shortCount = rows.filter(r => !r.isIn && r.sessions.length && r.totalMinutes < 90).length;
+
+  body.className = '';
+  body.innerHTML = `
+    <div class="report-summary-grid">
+      <div class="report-metric"><div class="report-metric-label">오늘 코드 입력</div><div class="report-metric-value">${rows.length}명</div></div>
+      <div class="report-metric"><div class="report-metric-label">현재 입실</div><div class="report-metric-value">${inCount}명</div></div>
+      <div class="report-metric"><div class="report-metric-label">퇴실 완료</div><div class="report-metric-value">${outCount}명</div></div>
+      <div class="report-metric"><div class="report-metric-label">1시간 30분 미만</div><div class="report-metric-value">${shortCount}명</div></div>
+    </div>
+    <div class="report-panel">
+      <div class="report-panel-title">오늘 입실 / 퇴실 현황</div>
+      <table class="report-table history-table">
+        <thead><tr><th>학생</th><th>상태</th><th>입실 시각</th><th>퇴실 시각</th><th>학습 시간</th></tr></thead>
+        <tbody>
+          ${rows.map(r => {
+            const latestCheckIn = r.last?.checkIn || r.checkIn || '-';
+            const latestCheckOut = r.last?.checkOut || r.checkOut || '';
+            const durationText = r.isIn ? '공부 중' : (r.sessions.length ? fmt(r.totalMinutes) : '-');
+            const statusBadge = r.isIn ? '<span class="badge-in">입실</span>' : '<span class="badge-out">퇴실</span>';
+            const short = !r.isIn && r.sessions.length && r.totalMinutes < 90;
+            return `<tr class="${short ? 'short-row' : ''}">
+              <td><div class="daily-name">${escapeHtml(r.name)}</div><div class="daily-code">코드 ${escapeHtml(r.code)}</div></td>
+              <td>${statusBadge}</td>
+              <td>${escapeHtml(latestCheckIn)}</td>
+              <td>${escapeHtml(latestCheckOut || '-')}</td>
+              <td>${escapeHtml(durationText)}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <div class="report-entry-sub" style="margin-top:0.75rem">이 화면은 시간표 명단과 관계없이 오늘 학생 단말기에서 코드가 입력된 모든 기록을 보여줍니다.</div>
+    </div>`;
 }
 
 // ── 학생 월간 리포트 ─────────────────────────────────────────────────────────
