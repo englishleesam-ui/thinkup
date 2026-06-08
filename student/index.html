@@ -300,6 +300,10 @@ function getActiveSessions(att) {
   return [{ checkIn: att.checkIn, checkOut: att.checkOut || null, durationMinutes: att.durationMinutes || null }];
 }
 
+function getCompletedSessionMinutes(sessions) {
+  return sessions.reduce((sum, session) => sum + (Number.isFinite(session.durationMinutes) ? session.durationMinutes : 0), 0);
+}
+
 async function submitCode() {
   processing = true;
   const enteredCode = code;
@@ -403,6 +407,7 @@ async function confirmAttendance() {
         showMessage('ℹ️', '출석 상태가 변경되었습니다.', '코드를 다시 입력해주세요.', 'error');
         return;
       }
+      const completedMinutes = getCompletedSessionMinutes(sessions);
       const newSession = { checkIn: timeStr, checkOut: null, durationMinutes: null };
       const newSessions = [...sessions, newSession];
       if (!latest) {
@@ -420,10 +425,16 @@ async function confirmAttendance() {
         await pending.attendRef.update({
           sessions: newSessions,
           checkOut: null,
-          durationMinutes: null
+          durationMinutes: completedMinutes
         });
       }
-      showMessage('✅', `${pending.student.name} 학생 입실 완료`, '', 'checkin', timeStr);
+      showMessage(
+        '✅',
+        completedMinutes ? `${pending.student.name} 학생 다시 입실 완료` : `${pending.student.name} 학생 입실 완료`,
+        completedMinutes ? `이전 공부시간 ${formatDuration(completedMinutes)}에 이어서 합산됩니다.` : '',
+        'checkin',
+        timeStr
+      );
       return;
     }
 
@@ -440,8 +451,9 @@ async function confirmAttendance() {
     const updatedSessions = sessions.map((s, i) =>
       i === sessions.length - 1 ? { ...s, checkOut: timeStr, durationMinutes: sessionMinutes } : s
     );
-    const totalMinutes = updatedSessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
+    const totalMinutes = getCompletedSessionMinutes(updatedSessions);
     const durStr = formatDuration(totalMinutes);
+    const completedSessionCount = updatedSessions.filter(s => s.checkOut).length;
     await pending.attendRef.update({
       sessions: updatedSessions,
       checkOut: timeStr,
@@ -453,8 +465,8 @@ async function confirmAttendance() {
       isShort ? '⚠️' : '👋',
       isShort ? `아직 공부량이 부족합니다.` : `${pending.student.name} 학생, 수고하셨습니다!`,
       isShort
-        ? `1시간 30분을 채워주세요.`
-        : `오늘 학습을 잘 마쳤습니다.`,
+        ? `오늘 총 ${durStr}입니다. 다시 입실하면 이어서 합산됩니다.`
+        : (completedSessionCount > 1 ? `중간 외출 전 공부시간까지 합산한 오늘 총 공부시간입니다.` : `오늘 총 공부시간입니다.`),
       isShort ? 'checkout-short' : 'checkout',
       durStr
     );
