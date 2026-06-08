@@ -265,6 +265,46 @@
       padding: 0.34rem 0.62rem; font-size: 0.74rem; font-weight: 900; cursor: pointer; white-space: nowrap;
     }
     .daily-checkout-btn:active { background: #dbeafe; }
+
+    /* ── 선생님 알림판 ── */
+    .notice-card {
+      background: #fff; border: 1px solid #dbe3ea; border-radius: 16px; padding: 1rem;
+      box-shadow: 0 2px 10px rgba(15,23,42,0.07); margin-bottom: 1rem;
+    }
+    .notice-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; margin-bottom: 0.65rem; }
+    .notice-card-title { color: #0f172a; font-size: 1rem; font-weight: 900; }
+    .notice-card-date { color: #94a3b8; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
+    .notice-card-message { color: #1e293b; font-size: 0.9rem; line-height: 1.55; white-space: pre-wrap; }
+    .notice-card-message.empty { color: #94a3b8; }
+    .notice-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; margin-top: 0.8rem; }
+    .notice-btn {
+      border: none; border-radius: 10px; padding: 0.72rem 0.8rem; font-size: 0.86rem;
+      font-weight: 900; cursor: pointer;
+    }
+    .notice-btn.primary { background: #0f766e; color: white; }
+    .notice-btn.secondary { background: #eef2f7; color: #334155; }
+    .notice-overlay {
+      display: none; position: fixed; inset: 0; z-index: 230; background: rgba(15,23,42,0.5);
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .notice-overlay.active { display: flex; }
+    .notice-dialog {
+      width: min(520px, 100%); background: white; border-radius: 18px; overflow: hidden;
+      box-shadow: 0 24px 70px rgba(15,23,42,0.32);
+    }
+    .notice-dialog-head { background: #123047; color: white; padding: 1rem 1.1rem; }
+    .notice-dialog-head h2 { font-size: 1.05rem; font-weight: 900; }
+    .notice-dialog-sub { color: rgba(255,255,255,0.7); font-size: 0.76rem; margin-top: 0.16rem; }
+    .notice-dialog-body { padding: 1.1rem; }
+    .notice-view-text {
+      min-height: 120px; color: #0f172a; font-size: 1rem; line-height: 1.65; white-space: pre-wrap;
+    }
+    .notice-editor {
+      width: 100%; min-height: 180px; resize: vertical; border: 2px solid #dbe3ea; border-radius: 12px;
+      padding: 0.9rem; font-size: 0.95rem; line-height: 1.55; outline: none;
+    }
+    .notice-editor:focus { border-color: #0f766e; }
+    .notice-dialog-actions { display: flex; justify-content: flex-end; gap: 0.55rem; margin-top: 1rem; }
     @media (max-width: 640px) {
       .header-right { gap: 0.35rem; }
       .report-entry { align-items: stretch; flex-direction: column; }
@@ -273,6 +313,8 @@
       .report-search button { padding: 0.75rem 1rem; }
       .report-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .report-table { font-size: 0.74rem; }
+      .notice-card-head { align-items: flex-start; flex-direction: column; }
+      .notice-actions { grid-template-columns: 1fr; }
     }
 
     /* ── 선생님 선택 화면 ── */
@@ -452,6 +494,19 @@
   <div style="padding:1.2rem 1rem 0">
     <p class="page-title" id="selectTitle">선생님을 선택하세요</p>
   </div>
+  <div style="padding:0 1rem" id="noticePanel">
+    <div class="notice-card">
+      <div class="notice-card-head">
+        <div class="notice-card-title">알림판</div>
+        <div class="notice-card-date" id="noticeUpdated">불러오는 중...</div>
+      </div>
+      <div class="notice-card-message empty" id="noticeMessage">알림을 불러오는 중입니다.</div>
+      <div class="notice-actions">
+        <button class="notice-btn secondary" onclick="openNoticeView()">알림판 보기</button>
+        <button class="notice-btn primary" onclick="openNoticeEditor()">알림판 작성</button>
+      </div>
+    </div>
+  </div>
   <div style="padding:0 1rem" id="teacherList">
     <div class="no-data">불러오는 중...</div>
   </div>
@@ -477,6 +532,40 @@
 <div id="mainPage">
   <div class="today-bar" id="todayBar"></div>
   <div id="tabContent"></div>
+</div>
+
+<!-- ── 알림판 보기 ── -->
+<div class="notice-overlay" id="noticeViewOverlay" onclick="if(event.target===this)closeNoticeView()">
+  <div class="notice-dialog">
+    <div class="notice-dialog-head">
+      <h2>알림판</h2>
+      <div class="notice-dialog-sub" id="noticeViewSub"></div>
+    </div>
+    <div class="notice-dialog-body">
+      <div class="notice-view-text" id="noticeViewText"></div>
+      <div class="notice-dialog-actions">
+        <button class="notice-btn secondary" onclick="closeNoticeView()">닫기</button>
+        <button class="notice-btn primary" onclick="openNoticeEditor()">수정하기</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 알림판 작성 ── -->
+<div class="notice-overlay" id="noticeEditorOverlay" onclick="if(event.target===this)closeNoticeEditor()">
+  <div class="notice-dialog">
+    <div class="notice-dialog-head">
+      <h2>알림판 작성</h2>
+      <div class="notice-dialog-sub">선생님들이 로그인 후 먼저 보게 될 메시지입니다.</div>
+    </div>
+    <div class="notice-dialog-body">
+      <textarea class="notice-editor" id="noticeEditorText" placeholder="알림 내용을 입력하세요"></textarea>
+      <div class="notice-dialog-actions">
+        <button class="notice-btn secondary" onclick="closeNoticeEditor()">취소</button>
+        <button class="notice-btn primary" onclick="saveNotice()">저장</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ── PWA 설치 배너 ── -->
@@ -579,6 +668,9 @@ let allSchedule    = {};
 let attendanceData = {};
 let unsubscribe    = null;
 let dailyReportUnsubscribe = null;
+let noticeUnsubscribe = null;
+let currentNotice = null;
+let noticeAutoShownFor = '';
 
 document.getElementById('headerTitle').textContent = greetingTitle;
 document.getElementById('headerSub').textContent = greetingSub;
@@ -625,6 +717,7 @@ function doLogin() {
 function doLogout() {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
   if (dailyReportUnsubscribe) { dailyReportUnsubscribe(); dailyReportUnsubscribe = null; }
+  if (noticeUnsubscribe) { noticeUnsubscribe(); noticeUnsubscribe = null; }
   sessionStorage.removeItem('thinkup_teacher_subject');
   currentSubject = null;
   currentTeacher = null;
@@ -636,6 +729,7 @@ function doLogout() {
   document.getElementById('mainPage').style.display = 'none';
   document.getElementById('selectPage').style.display = 'block';
   document.getElementById('teacherList').innerHTML = '<div class="no-data">불러오는 중...</div>';
+  renderNotice(null);
   document.getElementById('subjectSelect').value = '';
   document.getElementById('pwField').style.display = 'none';
   document.getElementById('loginBtn').style.display = 'none';
@@ -678,6 +772,94 @@ async function loadSchedulesAndShow() {
     return;
   }
   renderTeacherList();
+  startNoticeListener();
+}
+
+// ── 알림판 ───────────────────────────────────────────────────────────────────
+function formatNoticeTime(value) {
+  if (!value) return '작성된 알림 없음';
+  let date = null;
+  if (typeof value.toDate === 'function') date = value.toDate();
+  else if (value.seconds) date = new Date(value.seconds * 1000);
+  else date = new Date(value);
+  if (!date || Number.isNaN(date.getTime())) return '';
+  return `${date.getMonth()+1}월 ${date.getDate()}일 ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+}
+
+function startNoticeListener() {
+  if (noticeUnsubscribe) noticeUnsubscribe();
+  noticeUnsubscribe = db.collection('notices').doc('teacherBoard').onSnapshot(doc => {
+    currentNotice = doc.exists ? { id: doc.id, ...doc.data() } : null;
+    renderNotice(currentNotice);
+    maybeOpenNoticeFirst(currentNotice);
+  }, err => {
+    document.getElementById('noticeUpdated').textContent = '알림 불러오기 실패';
+    document.getElementById('noticeMessage').textContent = err.message;
+    document.getElementById('noticeMessage').classList.remove('empty');
+  });
+}
+
+function getNoticeMessage(notice = currentNotice) {
+  return String(notice?.message || '').trim();
+}
+
+function getNoticeKey(notice = currentNotice) {
+  const updated = notice?.updatedAt;
+  const seconds = updated?.seconds || '';
+  return `${seconds}:${getNoticeMessage(notice)}`;
+}
+
+function renderNotice(notice) {
+  const message = getNoticeMessage(notice);
+  const msgEl = document.getElementById('noticeMessage');
+  document.getElementById('noticeUpdated').textContent = message ? `최근 수정 ${formatNoticeTime(notice?.updatedAt)}` : '작성된 알림 없음';
+  msgEl.textContent = message || '아직 등록된 알림이 없습니다.';
+  msgEl.classList.toggle('empty', !message);
+}
+
+function maybeOpenNoticeFirst(notice) {
+  const message = getNoticeMessage(notice);
+  if (!message) return;
+  const key = getNoticeKey(notice);
+  if (!key || noticeAutoShownFor === key) return;
+  noticeAutoShownFor = key;
+  setTimeout(() => openNoticeView(), 120);
+}
+
+function openNoticeView() {
+  const message = getNoticeMessage();
+  document.getElementById('noticeViewSub').textContent = currentNotice?.updatedAt ? `최근 수정 ${formatNoticeTime(currentNotice.updatedAt)}` : '';
+  document.getElementById('noticeViewText').textContent = message || '아직 등록된 알림이 없습니다.';
+  document.getElementById('noticeViewOverlay').classList.add('active');
+}
+
+function closeNoticeView() {
+  document.getElementById('noticeViewOverlay').classList.remove('active');
+}
+
+function openNoticeEditor() {
+  closeNoticeView();
+  document.getElementById('noticeEditorText').value = getNoticeMessage();
+  document.getElementById('noticeEditorOverlay').classList.add('active');
+  setTimeout(() => document.getElementById('noticeEditorText').focus(), 80);
+}
+
+function closeNoticeEditor() {
+  document.getElementById('noticeEditorOverlay').classList.remove('active');
+}
+
+async function saveNotice() {
+  const message = document.getElementById('noticeEditorText').value.trim();
+  try {
+    await db.collection('notices').doc('teacherBoard').set({
+      message,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentSubject?.name || '전체'
+    }, { merge: true });
+    closeNoticeEditor();
+  } catch (e) {
+    alert('알림판 저장 중 오류가 발생했습니다: ' + e.message);
+  }
 }
 
 // ── 선생님 목록 렌더 (과목 필터) ─────────────────────────────────────────────
