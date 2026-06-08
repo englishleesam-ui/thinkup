@@ -274,8 +274,15 @@
     .notice-card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; margin-bottom: 0.65rem; }
     .notice-card-title { color: #0f172a; font-size: 1rem; font-weight: 900; }
     .notice-card-date { color: #94a3b8; font-size: 0.72rem; font-weight: 700; white-space: nowrap; }
-    .notice-card-message { color: #1e293b; font-size: 0.9rem; line-height: 1.55; white-space: pre-wrap; }
-    .notice-card-message.empty { color: #94a3b8; }
+    @keyframes noticeBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.28; }
+    }
+    .notice-card-message {
+      color: #dc2626; font-size: 0.95rem; line-height: 1.55; white-space: pre-wrap;
+      font-weight: 900; animation: noticeBlink 1s infinite;
+    }
+    .notice-card-message.empty { color: #94a3b8; font-weight: 400; animation: none; }
     .notice-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; margin-top: 0.8rem; }
     .notice-btn {
       border: none; border-radius: 10px; padding: 0.72rem 0.8rem; font-size: 0.86rem;
@@ -297,7 +304,8 @@
     .notice-dialog-sub { color: rgba(255,255,255,0.7); font-size: 0.76rem; margin-top: 0.16rem; }
     .notice-dialog-body { padding: 1.1rem; }
     .notice-view-text {
-      min-height: 120px; color: #0f172a; font-size: 1rem; line-height: 1.65; white-space: pre-wrap;
+      min-height: 120px; color: #dc2626; font-size: 1.08rem; line-height: 1.65; white-space: pre-wrap;
+      font-weight: 900; animation: noticeBlink 1s infinite;
     }
     .notice-editor {
       width: 100%; min-height: 180px; resize: vertical; border: 2px solid #dbe3ea; border-radius: 12px;
