@@ -1,527 +1,93 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>ThinkUp 출석</title>
-  <link rel="manifest" href="./manifest.json">
-  <meta name="theme-color" content="#059669">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-  <script src="../firebase-config.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body {
-      height: 100%; overflow: hidden;
-      font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-    }
-
-    /* 메인 화면 */
-    #mainScreen {
-      height: 100vh;
-      height: 100dvh;
-      background: linear-gradient(160deg, #065f46 0%, #059669 50%, #34d399 100%);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: flex-start;
-      padding: min(6vh, 2.4rem) 1.5rem 1rem;
-      position: relative;
-    }
-
-    .welcome {
-      color: white; font-size: 1.4rem; font-weight: 600;
-      margin-bottom: 0.55rem; text-align: center;
-    }
-    .welcome-sub { color: rgba(255,255,255,0.75); font-size: 1rem; margin-bottom: 0.9rem; text-align: center; }
-
-    /* 코드 입력 디스플레이 */
-    .code-display {
-      background: rgba(255,255,255,0.2);
-      border-radius: 14px; padding: 0.65rem 0.85rem;
-      min-width: 150px;
-      display: flex; align-items: center; justify-content: center; gap: 0.8rem;
-      position: absolute; top: 0.9rem; left: 0.9rem;
-    }
-    .code-dot {
-      width: 22px; height: 22px; border-radius: 50%;
-      border: 3px solid rgba(255,255,255,0.65);
-      background: transparent; transition: background 0.15s;
-    }
-    .code-dot.filled { background: white; border-color: white; }
-
-    /* 키패드 */
-    .keypad {
-      display: grid; grid-template-columns: repeat(3, 1fr);
-      gap: 0.8rem; width: 100%; max-width: min(320px, 82vh);
-    }
-    .key {
-      background: rgba(255,255,255,0.2);
-      border: none; border-radius: 14px;
-      color: white; font-size: 1.5rem; font-weight: 600;
-      padding: 1.1rem; cursor: pointer;
-      transition: background 0.1s, transform 0.1s;
-      backdrop-filter: blur(4px);
-      aspect-ratio: 1;
-    }
-    .key:active { background: rgba(255,255,255,0.4); transform: scale(0.95); }
-    .key.del { font-size: 1.2rem; }
-    .key.time-check {
-      font-size: 0.9rem; line-height: 1.2; font-weight: 800;
-      background: white; color: #047857;
-    }
-    .key.time-check:active { background: #ecfdf5; }
-    .key.empty { background: transparent; cursor: default; }
-    .key.empty:active { transform: none; }
-
-    /* 이름 확인 화면 */
-    #confirmScreen {
-      display: none; height: 100vh;
-      align-items: center; justify-content: center;
-      flex-direction: column; padding: 2rem 1.5rem;
-      text-align: center;
-      background: linear-gradient(160deg, #064e3b 0%, #047857 100%);
-    }
-    #confirmScreen.checkout {
-      background: linear-gradient(160deg, #1e3a5f 0%, #2563eb 100%);
-    }
-    .confirm-label {
-      color: rgba(255,255,255,0.75);
-      font-size: 1rem; font-weight: 700; margin-bottom: 0.8rem;
-    }
-    .confirm-name {
-      color: white; font-size: 2.4rem; font-weight: 800;
-      margin-bottom: 0.8rem;
-    }
-    .confirm-question {
-      color: white; font-size: 1.35rem; font-weight: 700;
-      line-height: 1.6;
-    }
-    .confirm-actions {
-      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 1rem; width: 100%; max-width: 360px;
-      margin-top: 2.2rem;
-    }
-    .confirm-btn {
-      border: 2px solid rgba(255,255,255,0.4);
-      border-radius: 16px; padding: 1.25rem 0.75rem;
-      font-size: 1.35rem; font-weight: 800; cursor: pointer;
-    }
-    .confirm-btn.yes { background: white; color: #047857; }
-    #confirmScreen.checkout .confirm-btn.yes { color: #1d4ed8; }
-    .confirm-btn.no { background: transparent; color: white; }
-    .confirm-btn:active { transform: scale(0.97); }
-
-    /* 메시지 화면 */
-    #msgScreen {
-      display: none; height: 100vh;
-      align-items: center; justify-content: center;
-      flex-direction: column; padding: 2rem;
-      text-align: center;
-    }
-    #msgScreen.checkin {
-      background: linear-gradient(160deg, #065f46 0%, #059669 100%);
-    }
-    #msgScreen.checkout {
-      background: linear-gradient(160deg, #1e3a5f 0%, #2563eb 100%);
-    }
-    #msgScreen.checkout-short {
-      background: linear-gradient(160deg, #7f1d1d 0%, #dc2626 100%);
-    }
-    #msgScreen.error {
-      background: linear-gradient(160deg, #7f1d1d 0%, #dc2626 100%);
-    }
-
-    .msg-icon { font-size: 5rem; margin-bottom: 1.5rem; }
-    .msg-text {
-      color: white; font-size: 1.35rem; font-weight: 700;
-      line-height: 1.7; max-width: 380px;
-    }
-    .msg-highlight {
-      display: none;
-      margin-top: 0.9rem;
-      color: #ff1f1f;
-      background: rgba(255,255,255,0.92);
-      border: 4px solid rgba(255,255,255,0.75);
-      border-radius: 18px;
-      padding: 0.75rem 1.35rem;
-      font-size: 3.2rem;
-      font-weight: 900;
-      line-height: 1.1;
-      letter-spacing: 0;
-      box-shadow: 0 14px 34px rgba(0,0,0,0.25);
-    }
-    .msg-sub {
-      color: rgba(255,255,255,0.8); font-size: 1rem;
-      margin-top: 1rem; font-weight: 400;
-    }
-    .msg-timer {
-      margin-top: 2rem; color: rgba(255,255,255,0.6);
-      font-size: 0.9rem;
-    }
-    .timer-bar {
-      width: 200px; height: 4px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 2px; margin: 0.6rem auto 0; overflow: hidden;
-    }
-    .timer-fill {
-      height: 100%; background: white; border-radius: 2px;
-      width: 100%; transition: width linear;
-    }
-
-    @media (min-width: 500px) {
-      .welcome { font-size: 1.8rem; }
-      .key { font-size: 1.8rem; padding: 1.3rem; }
-      .keypad { max-width: 360px; }
-      .msg-text { font-size: 1.6rem; }
-      .msg-highlight { font-size: 4rem; }
-    }
-    @media (max-height: 620px) {
-      #mainScreen { padding-top: 0.45rem; padding-bottom: 0.25rem; }
-      .welcome { font-size: 1.12rem; margin-bottom: 0.15rem; }
-      .welcome-sub { font-size: 0.82rem; margin-bottom: 0.45rem; }
-      .code-display { top: 0.45rem; left: 0.45rem; padding: 0.45rem 0.65rem; min-width: 120px; gap: 0.55rem; border-radius: 12px; }
-      .code-dot { width: 18px; height: 18px; }
-      .keypad { gap: 0.34rem; max-width: min(300px, 68vh); }
-      .key { padding: 0.45rem; border-radius: 10px; font-size: 1.18rem; }
-      .key.time-check { font-size: 0.72rem; }
-    }
-  </style>
-</head>
-<body>
-
-<!-- 메인 화면 (코드 입력) -->
-<div id="mainScreen">
-  <div class="code-display" id="codeDisplay">
-    <div class="code-dot" id="d0"></div>
-    <div class="code-dot" id="d1"></div>
-    <div class="code-dot" id="d2"></div>
-    <div class="code-dot" id="d3"></div>
-  </div>
-
-  <div class="welcome">이샘 학원은 여러분을 환영합니다!</div>
-  <div class="welcome-sub" id="welcomeSub">코드를 눌러주세요</div>
-
-  <div class="keypad">
-    <button class="key" onclick="press('1')">1</button>
-    <button class="key" onclick="press('2')">2</button>
-    <button class="key" onclick="press('3')">3</button>
-    <button class="key" onclick="press('4')">4</button>
-    <button class="key" onclick="press('5')">5</button>
-    <button class="key" onclick="press('6')">6</button>
-    <button class="key" onclick="press('7')">7</button>
-    <button class="key" onclick="press('8')">8</button>
-    <button class="key" onclick="press('9')">9</button>
-    <button class="key time-check" onclick="startTimeCheck()">시간<br>체크</button>
-    <button class="key" onclick="press('0')">0</button>
-    <button class="key del" onclick="del()">←</button>
-  </div>
-</div>
-
-<!-- 메시지 화면 -->
-<div id="msgScreen">
-  <div class="msg-icon" id="msgIcon"></div>
-  <div class="msg-text" id="msgText"></div>
-  <div class="msg-highlight" id="msgHighlight"></div>
-  <div class="msg-sub" id="msgSub"></div>
-  <div class="msg-timer">
-    <div id="timerTxt">5초 후 자동으로 돌아갑니다</div>
-    <div class="timer-bar"><div class="timer-fill" id="timerFill"></div></div>
-  </div>
-</div>
-
-<!-- 학생 이름 확인 화면 -->
-<div id="confirmScreen">
-  <div class="confirm-label" id="confirmLabel"></div>
-  <div class="confirm-name" id="confirmName"></div>
-  <div class="confirm-question" id="confirmQuestion"></div>
-  <div class="confirm-actions">
-    <button class="confirm-btn yes" onclick="confirmAttendance()">Y 맞아요</button>
-    <button class="confirm-btn no" onclick="cancelAttendance()">N 아니에요</button>
-  </div>
-</div>
-
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"><meta name="theme-color" content="#123c69">
+<meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>ThinkUp 영어 수업</title><link rel="manifest" href="./manifest.json">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script><script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script><script src="../firebase-config.js"></script>
+<style>
+:root{--navy:#123c69;--ink:#172338;--muted:#68778a;--paper:#f4f7f9;--line:#d9e2ec;--orange:#d9542b;--blue:#176b87;--green:#42642c;--gold:#e0a817;--danger:#b42318}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{height:100%;margin:0;overflow:hidden;font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink)}button{font:inherit;cursor:pointer}.screen{display:none;min-height:100vh;min-height:100dvh;padding:24px}.screen.active{display:flex}.brand{font-size:24px;font-weight:950}.clock{font-weight:800}.eyebrow{margin:0 0 7px;color:#ef7445;font-size:13px;font-weight:950;letter-spacing:1.5px}.title{margin:0;font-size:clamp(34px,6vw,62px);line-height:1.08}.copy{margin:9px 0 0;color:var(--muted);font-size:clamp(18px,3vw,26px);font-weight:800;line-height:1.45}
+#entryScreen{flex-direction:column;justify-content:center;background:linear-gradient(145deg,#e8f0f6,#f9fbfc)}.topline{position:absolute;top:22px;left:24px;right:24px;display:flex;justify-content:space-between;color:var(--navy)}.entry-wrap{width:min(720px,100%);margin:auto}.code-row{display:grid;grid-template-columns:1fr 120px;gap:10px;margin:20px 0 12px}.code-box{display:flex;align-items:center;justify-content:center;min-height:78px;border:2px solid #cbd8e3;border-radius:14px;background:#fff;font-size:clamp(40px,8vw,64px);font-weight:950;letter-spacing:12px;color:var(--navy);box-shadow:0 8px 24px rgba(18,60,105,.08)}.code-submit{border:0;border-radius:14px;background:var(--navy);color:#fff;font-weight:950}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.key{min-height:68px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);font-size:27px;font-weight:950;box-shadow:0 3px 10px rgba(18,60,105,.05)}.key:active{transform:scale(.97)}.time-check{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:60px;margin-top:10px;padding:10px 17px;border:2px solid #d3a018;border-radius:12px;background:#fff3bd;color:#634600}.time-check span{font-size:20px;font-weight:950}.time-check small{font-weight:800}.time-check.active{background:var(--gold);color:#fff}
+#confirmScreen,#lessonScreen,#timeScreen,#messageScreen{align-items:center;justify-content:center;background:var(--paper)}.card{width:min(720px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:clamp(24px,4vw,38px);border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 18px 45px rgba(18,60,105,.11)}.center{text-align:center}.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}.confirm-btn{min-height:105px;border:0;border-radius:16px;color:#fff;font-size:25px;font-weight:950}.confirm-btn.yes{background:#16834a}.confirm-btn.no{background:var(--danger)}
+.timeline{display:grid;gap:8px;margin:20px 0}.step{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:11px;padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:#f8fafc}.step-num{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#e4ebf2;color:var(--muted);font-weight:950}.step strong,.step small{display:block}.step small{margin-top:2px;color:var(--muted);font-weight:700}.step>b{font-size:12px;color:var(--muted)}.step.active{border-color:#efa56d;background:#fff6ed}.step.active .step-num{background:#ef7445;color:#fff}.step.active>b{color:#bd4b21}.step.done{border-color:#99d1ad;background:#f1faf4}.step.done .step-num{background:#16834a;color:#fff}.step.done>b{color:#16834a}.lesson-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.lesson-btn{min-height:106px;padding:12px;border:0;border-radius:15px;color:#fff;box-shadow:0 9px 22px rgba(18,60,105,.14)}.lesson-btn span,.lesson-btn small{display:block}.lesson-btn span{font-size:clamp(25px,4vw,37px);font-weight:950}.lesson-btn small{margin-top:6px;font-weight:800;opacity:.86}.lesson-btn.grammar{background:var(--orange)}.lesson-btn.reading{background:var(--blue)}.lesson-btn.vocab{background:var(--green)}.lesson-btn.finish{grid-column:1/-1;background:var(--navy)}.cancel{display:block;margin:15px auto 0;padding:8px 12px;border:0;background:transparent;color:var(--muted);font-weight:800}
+#timeScreen{background:#fff9df}.time-list{display:grid;gap:10px;margin:20px 0}.time-item{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;padding:17px;border-left:7px solid var(--navy);border-radius:13px;background:#fff;box-shadow:0 5px 16px rgba(18,60,105,.08)}.time-item.grammar{border-left-color:var(--orange)}.time-item.reading{border-left-color:var(--blue)}.time-item.vocab{border-left-color:var(--green)}.time-item.active{outline:3px solid #ffd45f}.time-item span,.time-item small{display:block}.time-item span{font-size:21px;font-weight:950}.time-item small{margin-top:3px;color:var(--muted);font-weight:700}.time-item strong{font-size:clamp(24px,4vw,36px);color:var(--navy);white-space:nowrap}.total{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:19px;border-radius:14px;background:#654700;color:#fff}.total span{font-weight:900}.total strong{color:#ffe173;font-size:clamp(30px,5vw,47px)}.close{width:100%;min-height:55px;margin-top:11px;border:0;border-radius:12px;background:var(--gold);color:#fff;font-size:18px;font-weight:950}
+#messageScreen{color:#fff;text-align:center;background:linear-gradient(145deg,#123c69,#176b87)}#messageScreen.error{background:linear-gradient(145deg,#7f1d1d,#dc2626)}.message-icon{font-size:62px}.message-title{margin:12px 0 4px;font-size:clamp(34px,6vw,58px)}.message-copy{font-size:clamp(19px,3vw,28px);font-weight:800;line-height:1.5}.message-highlight{display:inline-block;margin-top:15px;padding:12px 20px;border-radius:14px;background:#fff;color:var(--navy);font-size:clamp(35px,7vw,65px);font-weight:950}.message-wait{margin-top:22px;opacity:.7}
+@media(max-width:620px){.screen{padding:14px}.topline{top:13px;left:15px;right:15px}.card{max-height:calc(100dvh - 20px);padding:20px 16px}.code-row{grid-template-columns:1fr 90px}.key{min-height:58px}.lesson-buttons{grid-template-columns:1fr}.lesson-btn{min-height:72px}.time-check small{font-size:11px}}@media(max-height:650px){.entry-wrap .title{font-size:30px}.entry-wrap .copy{font-size:15px}.code-row{margin:10px 0 8px}.code-box{min-height:55px;font-size:38px}.keypad{gap:5px}.key{min-height:45px}.time-check{min-height:43px}.card{padding:15px}.timeline{margin:10px 0}.step{padding:8px}.lesson-btn{min-height:65px}.confirm-btn{min-height:75px}}
+</style></head><body>
+<section id="entryScreen" class="screen active"><div class="topline"><span class="brand">ThinkUp 2.0</span><span id="clock" class="clock"></span></div><div class="entry-wrap"><p id="entryEyebrow" class="eyebrow">ENGLISH CLASS CHECK</p><h1 id="entryTitle" class="title">개인 코드를 눌러주세요</h1><p id="entryCopy" class="copy">문법·독해·단어 수업을 차례로 기록합니다.</p><div class="code-row"><div id="codeBox" class="code-box">••••</div><button class="code-submit" onclick="submitCode()">확인</button></div><div class="keypad" id="keypad"></div><button id="timeCheckButton" class="time-check" onclick="startTimeCheck()"><span>시간 체크</span><small>분야별 공부시간 확인</small></button></div></section>
+<section id="confirmScreen" class="screen"><div class="card center"><p class="eyebrow">학생 확인</p><h1 id="confirmName" class="title"></h1><p class="copy">본인이 맞나요?</p><div class="confirm-actions"><button class="confirm-btn yes" onclick="confirmStudent()">네, 맞아요</button><button class="confirm-btn no" onclick="resetScreen()">아니요</button></div></div></section>
+<section id="lessonScreen" class="screen"><div class="card"><p class="eyebrow">TODAY'S ENGLISH</p><h1 id="lessonName" class="title"></h1><p id="lessonGuide" class="copy"></p><div id="timeline" class="timeline"></div><div id="lessonButtons" class="lesson-buttons"></div><button class="cancel" onclick="resetScreen()">처음 화면으로</button></div></section>
+<section id="timeScreen" class="screen"><div class="card"><p class="eyebrow">MY STUDY CLOCK</p><h1 id="timeName" class="title"></h1><p class="copy">지금까지 분야별로 공부한 시간이에요.</p><div id="timeList" class="time-list"></div><div class="total"><span>오늘 총 공부시간</span><strong id="timeTotal">0분</strong></div><button class="close" onclick="resetScreen()">확인했어요</button></div></section>
+<section id="messageScreen" class="screen"><div><div id="messageIcon" class="message-icon"></div><h1 id="messageTitle" class="message-title"></h1><div id="messageCopy" class="message-copy"></div><div id="messageHighlight" class="message-highlight"></div><div class="message-wait">잠시 후 처음 화면으로 돌아갑니다.</div></div></section>
 <script>
-let code = '';
-let processing = false;
-let resetTimer = null;
-let pendingAttendance = null;
-let timeCheckMode = false;
-
-function toDateStr(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+const AREAS=[{id:'grammar',name:'문법'},{id:'reading',name:'독해'},{id:'vocab',name:'단어'}];
+let code='',processing=false,timeMode=false,current=null,resetTimer=null;
+const $=id=>document.getElementById(id);
+function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
+function timeNow(d=new Date()){return d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false})}
+function minutesBetween(start,end){if(!start)return 0;const toMin=v=>{const [h,m]=v.split(':').map(Number);return h*60+m};return Math.max(0,toMin(end||timeNow())-toMin(start))}
+function duration(n){n=Math.max(0,Number(n)||0);const h=Math.floor(n/60),m=n%60;return h?`${h}시간 ${m}분`:`${m}분`}
+function normalize(raw={}){return{areas:raw.englishAreas||{},order:Array.isArray(raw.englishAreaOrder)?raw.englishAreaOrder:[],active:raw.activeEnglishArea||null,finished:Boolean(raw.englishV2Finished)}}
+function areaState(state,id){return state.areas[id]||null}
+function currentMinutes(item){return item?Number.isFinite(item.durationMinutes)?item.durationMinutes:minutesBetween(item.start,item.end):0}
+function totalMinutes(state){return AREAS.reduce((sum,a)=>sum+currentMinutes(areaState(state,a.id)),0)}
+function setScreen(id){document.querySelectorAll('.screen').forEach(el=>el.classList.toggle('active',el.id===id))}
+function updateCode(){$('codeBox').textContent=(code+'••••').slice(0,4).split('').join(' ')}
+function press(n){if(processing||code.length>=4)return;code+=n;updateCode();if(code.length===4)setTimeout(submitCode,150)}
+function erase(){if(processing)return;code=code.slice(0,-1);updateCode()}
+function startTimeCheck(){if(processing)return;timeMode=true;code='';updateCode();$('timeCheckButton').classList.add('active');$('entryEyebrow').textContent='MY STUDY CLOCK';$('entryTitle').textContent='확인할 코드를 눌러주세요';$('entryCopy').textContent='조회만 하며 수업 기록은 변경하지 않습니다.'}
+async function submitCode(){
+  if(processing||!/^[0-9]{4}$/.test(code))return;processing=true;
+  try{
+    const studentDoc=await db.collection('students').doc(code).get();
+    if(!studentDoc.exists)throw new Error('등록되지 않은 코드입니다.');
+    const ref=db.collection('attendance').doc(today()).collection('students').doc(code);
+    const attendDoc=await ref.get(),raw=attendDoc.exists?attendDoc.data():{};
+    current={student:studentDoc.data(),code,ref,raw,state:normalize(raw)};
+    if(timeMode){renderTime();return}
+    $('confirmName').textContent=`${current.student.name} 학생`;setScreen('confirmScreen');
+  }catch(e){showMessage('❓','코드를 확인해주세요',e.message,'error')}finally{processing=false}
 }
-function formatTime(d) {
-  return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+function confirmStudent(){
+  if(!current)return;
+  if(current.state.finished){showMessage('✅',`${current.student.name} 학생`,'오늘 영어 수업을 모두 마쳤습니다.','',duration(totalMinutes(current.state)),9000);return}
+  setScreen('lessonScreen');renderLessons();
 }
-function formatDuration(min) {
-  const h = Math.floor(min / 60), m = min % 60;
-  if (h === 0) return `${m}분`;
-  if (m === 0) return `${h}시간`;
-  return `${h}시간 ${m}분`;
+function renderLessons(){
+  const state=current.state;$('lessonName').textContent=`${current.student.name} 학생`;
+  $('timeline').innerHTML=AREAS.map((area,i)=>{const item=areaState(state,area.id),status=item?.end?'done':item?'active':'waiting';const detail=!item?'아직 시작 전':item.end?`${item.start} – ${item.end} · ${duration(currentMinutes(item))}`:`${item.start} 시작 · 수업 중`;return `<div class="step ${status}"><span class="step-num">${i+1}</span><div><strong>${area.name}</strong><small>${detail}</small></div><b>${status==='done'?'완료':status==='active'?'진행 중':'대기'}</b></div>`}).join('');
+  const available=AREAS.filter(a=>!state.order.includes(a.id));
+  if(available.length){$('lessonGuide').textContent=state.active?'현재 수업을 마쳤다면 다음 수업을 선택하세요.':'지금 들어갈 수업을 선택하세요.';$('lessonButtons').innerHTML=available.map(a=>`<button class="lesson-btn ${a.id}" onclick="transition('${a.id}','start')"><span>${a.name}</span><small>${state.active?'다음 수업 시작':'수업 시작'}</small></button>`).join('')}
+  else{$('lessonGuide').textContent='세 가지 수업을 모두 들었습니다.';$('lessonButtons').innerHTML=`<button class="lesson-btn finish" onclick="transition('','finish')"><span>오늘 영어 수업 마치기</span><small>마지막 수업 종료 및 총 시간 확인</small></button>`}
 }
-
-function updateDots() {
-  for (let i = 0; i < 4; i++) {
-    document.getElementById('d' + i).classList.toggle('filled', i < code.length);
-  }
-}
-
-function startTimeCheck() {
-  if (processing) return;
-  code = '';
-  timeCheckMode = true;
-  updateDots();
-  document.getElementById('welcomeSub').textContent = '시간 체크할 코드를 눌러주세요';
-}
-
-function press(n) {
-  if (processing || code.length >= 4) return;
-  code += n;
-  updateDots();
-  if (code.length === 4) {
-    setTimeout(() => submitCode(), 200);
-  }
-}
-
-function del() {
-  if (processing || code.length === 0) return;
-  code = code.slice(0, -1);
-  updateDots();
-}
-
-function getActiveSessions(att) {
-  if (!att) return [];
-  if (att.sessions && att.sessions.length > 0) return att.sessions;
-  if (!att.checkIn) return [];
-  return [{ checkIn: att.checkIn, checkOut: att.checkOut || null, durationMinutes: att.durationMinutes || null }];
-}
-
-function getCompletedSessionMinutes(sessions) {
-  return sessions.reduce((sum, session) => sum + (Number.isFinite(session.durationMinutes) ? session.durationMinutes : 0), 0);
-}
-
-async function submitCode() {
-  processing = true;
-  const enteredCode = code;
-
-  try {
-    // 학생 조회
-    const studentDoc = await db.collection('students').doc(enteredCode).get();
-    if (!studentDoc.exists) {
-      showMessage('❓', '등록되지 않은 코드입니다.', '', 'error');
-      return;
-    }
-
-    const student = studentDoc.data();
-    const today = toDateStr(new Date());
-    const attendRef = db.collection('attendance').doc(today).collection('students').doc(enteredCode);
-    const attendDoc = await attendRef.get();
-
-    if (timeCheckMode) {
-      showStudyTime(student, attendDoc.exists ? attendDoc.data() : null);
-      return;
-    }
-
-    const sessions = getActiveSessions(attendDoc.exists ? attendDoc.data() : null);
-    const lastSession = sessions[sessions.length - 1];
-    if (!lastSession || lastSession.checkOut) {
-      showConfirmation(student, enteredCode, today, attendRef, 'checkin');
-    } else {
-      showConfirmation(student, enteredCode, today, attendRef, 'checkout');
-    }
-  } catch (err) {
-    showMessage('⚠️', '오류가 발생했습니다.', err.message, 'error');
-  }
-}
-
-function minutesFromCheckIn(checkIn, now) {
-  if (!checkIn) return 0;
-  const [hour, minute] = checkIn.split(':').map(v => parseInt(v, 10));
-  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return 0;
-  const checkInDate = new Date(now);
-  checkInDate.setHours(hour, minute, 0, 0);
-  return Math.max(0, Math.round((now - checkInDate) / 60000));
-}
-
-function getCurrentStudyMinutes(att) {
-  const sessions = getActiveSessions(att);
-  if (!sessions.length) return { minutes: 0, status: 'none' };
-  const now = new Date();
-  const total = sessions.reduce((sum, session, index) => {
-    if (session.durationMinutes != null) return sum + session.durationMinutes;
-    if (index === sessions.length - 1 && !session.checkOut) return sum + minutesFromCheckIn(session.checkIn, now);
-    return sum;
-  }, 0);
-  const lastSession = sessions[sessions.length - 1];
-  return { minutes: total, status: lastSession && !lastSession.checkOut ? 'studying' : 'done' };
-}
-
-function showStudyTime(student, att) {
-  const result = getCurrentStudyMinutes(att);
-  if (result.status === 'none') {
-    showMessage('ℹ️', `${student.name} 학생`, '오늘 입실 기록이 아직 없습니다.', 'error');
-    return;
-  }
-  showMessage(
-    result.status === 'studying' ? '⏱️' : '✅',
-    `${student.name} 학생`,
-    result.status === 'studying' ? '현재까지 공부한 시간입니다.' : '오늘 기록된 학습 시간입니다.',
-    result.status === 'studying' ? 'checkin' : 'checkout',
-    formatDuration(result.minutes)
-  );
-}
-
-function showConfirmation(student, enteredCode, today, attendRef, action) {
-  pendingAttendance = { student, enteredCode, today, attendRef, action };
-  const confirm = document.getElementById('confirmScreen');
-  document.getElementById('mainScreen').style.display = 'none';
-  confirm.style.display = 'flex';
-  confirm.className = action === 'checkout' ? 'checkout' : '';
-  document.getElementById('confirmLabel').textContent =
-    action === 'checkout' ? '퇴실 확인' : '입실 확인';
-  document.getElementById('confirmName').textContent = `${student.name} 학생`;
-  document.getElementById('confirmQuestion').textContent =
-    action === 'checkout' ? '퇴실하시겠습니까?' : '입실하시겠습니까?';
-}
-
-async function confirmAttendance() {
-  if (!pendingAttendance) return;
-  const pending = pendingAttendance;
-  pendingAttendance = null;
-
-  try {
-    const now = new Date();
-    const timeStr = formatTime(now);
-    const latestDoc = await pending.attendRef.get();
-    const latest = latestDoc.exists ? latestDoc.data() : null;
-
-    const sessions = getActiveSessions(latest);
-
-    if (pending.action === 'checkin') {
-      const lastSession = sessions[sessions.length - 1];
-      if (lastSession && !lastSession.checkOut) {
-        showMessage('ℹ️', '출석 상태가 변경되었습니다.', '코드를 다시 입력해주세요.', 'error');
-        return;
-      }
-      const completedMinutes = getCompletedSessionMinutes(sessions);
-      const newSession = { checkIn: timeStr, checkOut: null, durationMinutes: null };
-      const newSessions = [...sessions, newSession];
-      if (!latest) {
-        await pending.attendRef.set({
-          studentName: pending.student.name,
-          code: pending.enteredCode,
-          checkIn: timeStr,
-          checkInTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-          checkOut: null,
-          durationMinutes: null,
-          date: pending.today,
-          sessions: newSessions
-        });
-      } else {
-        await pending.attendRef.update({
-          sessions: newSessions,
-          checkOut: null,
-          durationMinutes: completedMinutes
-        });
-      }
-      showMessage(
-        '✅',
-        completedMinutes ? `${pending.student.name} 학생 다시 입실 완료` : `${pending.student.name} 학생 입실 완료`,
-        completedMinutes ? `이전 공부시간 ${formatDuration(completedMinutes)}에 이어서 합산됩니다.` : '',
-        'checkin',
-        timeStr
-      );
-      return;
-    }
-
-    const lastSession = sessions[sessions.length - 1];
-    if (!lastSession || lastSession.checkOut) {
-      showMessage('ℹ️', '출석 상태가 변경되었습니다.', '코드를 다시 입력해주세요.', 'error');
-      return;
-    }
-
-    const checkInParts = lastSession.checkIn.split(':');
-    const checkInDate = new Date();
-    checkInDate.setHours(parseInt(checkInParts[0]), parseInt(checkInParts[1]), 0, 0);
-    const sessionMinutes = Math.max(0, Math.round((now - checkInDate) / 60000));
-    const updatedSessions = sessions.map((s, i) =>
-      i === sessions.length - 1 ? { ...s, checkOut: timeStr, durationMinutes: sessionMinutes } : s
-    );
-    const totalMinutes = getCompletedSessionMinutes(updatedSessions);
-    const durStr = formatDuration(totalMinutes);
-    const completedSessionCount = updatedSessions.filter(s => s.checkOut).length;
-    await pending.attendRef.update({
-      sessions: updatedSessions,
-      checkOut: timeStr,
-      checkOutTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      durationMinutes: totalMinutes
+async function transition(areaId,action){
+  if(processing||!current)return;processing=true;document.querySelectorAll('#lessonButtons button').forEach(b=>b.disabled=true);
+  try{
+    const result=await db.runTransaction(async tx=>{
+      const snap=await tx.get(current.ref),raw=snap.exists?snap.data():{},state=normalize(raw);
+      if(state.finished)throw new Error('오늘 수업은 이미 완료되었습니다.');
+      if(action==='start'&&(!AREAS.some(a=>a.id===areaId)||state.order.includes(areaId)))throw new Error('이미 선택한 수업입니다.');
+      if(action==='finish'&&(state.order.length!==3||!state.active))throw new Error('세 수업을 모두 진행한 뒤 마칠 수 있습니다.');
+      const now=timeNow(),areas={...state.areas},order=[...state.order];
+      if(state.active){const old={...areas[state.active]};old.end=now;old.durationMinutes=minutesBetween(old.start,now);areas[state.active]=old}
+      let active=null;if(action==='start'){areas[areaId]={start:now,end:null,durationMinutes:null};order.push(areaId);active=areaId}
+      const total=AREAS.reduce((sum,a)=>sum+currentMinutes(areas[a.id]),0);
+      const data={studentName:current.student.name,code:current.code,date:today(),englishV2:true,englishAreas:areas,englishAreaOrder:order,activeEnglishArea:active,englishV2Finished:action==='finish',durationMinutes:total,checkOut:action==='finish'?now:null};
+      if(!snap.exists||!raw.checkIn)data.checkIn=now;
+      tx.set(current.ref,data,{merge:true});return{raw:{...raw,...data},state:normalize(data),now};
     });
-    const isShort = totalMinutes < 90;
-    showMessage(
-      isShort ? '⚠️' : '👋',
-      isShort ? `아직 공부량이 부족합니다.` : `${pending.student.name} 학생, 수고하셨습니다!`,
-      isShort
-        ? `오늘 총 ${durStr}입니다. 다시 입실하면 이어서 합산됩니다.`
-        : (completedSessionCount > 1 ? `중간 외출 전 공부시간까지 합산한 오늘 총 공부시간입니다.` : `오늘 총 공부시간입니다.`),
-      isShort ? 'checkout-short' : 'checkout',
-      durStr
-    );
-  } catch (err) {
-    showMessage('⚠️', '오류가 발생했습니다.', err.message, 'error');
-  }
+    current.raw=result.raw;current.state=result.state;
+    if(action==='finish')showMessage('🏁',`${current.student.name} 학생`,'문법·독해·단어 수업을 모두 마쳤습니다.','',duration(totalMinutes(current.state)),9000);
+    else{const area=AREAS.find(a=>a.id===areaId);showMessage('✅',`${area.name} 수업 시작`,`${result.now}에 시작했습니다.`,'','',4500)}
+  }catch(e){showMessage('⚠️','처리하지 못했습니다',e.message,'error')}finally{processing=false}
 }
-
-function cancelAttendance() {
-  pendingAttendance = null;
-  resetScreen();
+function renderTime(){
+  const state=current.state,now=timeNow();$('timeName').textContent=`${current.student.name} 학생`;
+  $('timeList').innerHTML=AREAS.map(area=>{const item=areaState(state,area.id);const mins=item?Number.isFinite(item.durationMinutes)?item.durationMinutes:minutesBetween(item.start,now):0;const label=!item?'아직 시작 전':item.end?`${item.start} – ${item.end} · 완료`:`${item.start}부터 현재까지 · 수업 중`;return `<div class="time-item ${area.id} ${item&&!item.end?'active':''}"><div><span>${area.name}</span><small>${label}</small></div><strong>${duration(mins)}</strong></div>`}).join('');
+  $('timeTotal').textContent=duration(totalMinutes(state));setScreen('timeScreen');resetTimer=setTimeout(resetScreen,12000);
 }
-
-function showMessage(icon, text, sub, type, highlight = '') {
-  const msg = document.getElementById('msgScreen');
-  document.getElementById('mainScreen').style.display = 'none';
-  document.getElementById('confirmScreen').style.display = 'none';
-  msg.style.display = 'flex';
-  msg.className = type;
-  document.getElementById('msgIcon').textContent = icon;
-  document.getElementById('msgText').textContent = text;
-  const highlightEl = document.getElementById('msgHighlight');
-  highlightEl.textContent = highlight;
-  highlightEl.style.display = highlight ? 'block' : 'none';
-  document.getElementById('msgSub').textContent = sub;
-
-  // 타이머 바 애니메이션
-  const fill = document.getElementById('timerFill');
-  fill.style.transition = 'none';
-  fill.style.width = '100%';
-  setTimeout(() => {
-    fill.style.transition = 'width 5s linear';
-    fill.style.width = '0%';
-  }, 50);
-
-  if (resetTimer) clearTimeout(resetTimer);
-  resetTimer = setTimeout(resetScreen, 5000);
-}
-
-function resetScreen() {
-  code = '';
-  processing = false;
-  pendingAttendance = null;
-  timeCheckMode = false;
-  updateDots();
-  document.getElementById('welcomeSub').textContent = '코드를 눌러주세요';
-  document.getElementById('msgScreen').style.display = 'none';
-  document.getElementById('confirmScreen').style.display = 'none';
-  document.getElementById('mainScreen').style.display = 'flex';
-}
-
-// Service Worker 등록
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(console.warn);
-}
-</script>
-</body>
-</html>
+function showMessage(icon,title,copy,type='',highlight='',delay=5000){setScreen('messageScreen');$('messageScreen').className=`screen active ${type}`;$('messageIcon').textContent=icon;$('messageTitle').textContent=title;$('messageCopy').textContent=copy;$('messageHighlight').textContent=highlight;$('messageHighlight').style.display=highlight?'inline-block':'none';clearTimeout(resetTimer);resetTimer=setTimeout(resetScreen,delay)}
+function resetScreen(){clearTimeout(resetTimer);code='';processing=false;timeMode=false;current=null;updateCode();$('timeCheckButton').classList.remove('active');$('entryEyebrow').textContent='ENGLISH CLASS CHECK';$('entryTitle').textContent='개인 코드를 눌러주세요';$('entryCopy').textContent='문법·독해·단어 수업을 차례로 기록합니다.';setScreen('entryScreen')}
+$('keypad').innerHTML=['1','2','3','4','5','6','7','8','9','지움','0','←'].map(k=>`<button class="key" onclick="${k==='지움'?"code='';updateCode()":k==='←'?'erase()':`press('${k}')`}">${k}</button>`).join('');
+function tick(){$('clock').textContent=new Date().toLocaleString('ko-KR',{month:'long',day:'numeric',weekday:'long',hour:'2-digit',minute:'2-digit'})}tick();setInterval(tick,1000);updateCode();if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(console.warn);
+</script></body></html>
