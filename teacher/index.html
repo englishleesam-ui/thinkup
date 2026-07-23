@@ -1014,7 +1014,7 @@ async function forceCheckout(code, name, dateStr = '') {
       }
       updateData.englishAreas = areas;
       updateData.activeEnglishArea = null;
-      updateData.englishV2Finished = true;
+      updateData.englishV2Finished = ENGLISH_AREAS.every(area => areas[area.id]?.end);
       updateData.durationMinutes = ENGLISH_AREAS.reduce((sum, area) => {
         const areaItem = areas[area.id];
         return sum + (Number.isFinite(areaItem?.durationMinutes) ? areaItem.durationMinutes : 0);
@@ -1561,7 +1561,7 @@ async function autoCheckoutLongRunning(dateStr, students) {
   const nowDate = dailyNowForDate(dateStr);
   const nowText = timeStringFromDate(nowDate);
   const updates = students.filter(s => {
-    if (s.englishV2Finished || s.checkOut || !s.activeEnglishArea) return false;
+    if (s.englishV2Finished || !s.activeEnglishArea) return false;
     const item = getEnglishAreaState(s, s.activeEnglishArea);
     return item?.start && minutesBetweenClock(item.start, nowText) >= 180;
   });
@@ -1583,7 +1583,7 @@ async function autoCheckoutLongRunning(dateStr, students) {
       await db.collection('attendance').doc(dateStr).collection('students').doc(s.code).set({
         englishAreas: areas,
         activeEnglishArea: null,
-        englishV2Finished: true,
+        englishV2Finished: ENGLISH_AREAS.every(area => areas[area.id]?.end),
         autoCheckout: true,
         autoCheckoutReason: '3시간 이상 코드 변동 없음',
         checkOut: nowText,
@@ -1607,10 +1607,11 @@ function renderDailyReport(students, dateStr = getTodayAttendanceDateStr()) {
   const rows = students.map(s => {
     const sessions = getSessions(s);
     const last = sessions[sessions.length - 1] || null;
-    const isIn = !!last && !last.checkOut;
+    const hasAreaFlow = hasEnglishAreaData(s);
+    const isIn = hasAreaFlow ? !!s.activeEnglishArea : (!!last && !last.checkOut);
     const totalMinutes = getDailyTotalMinutes(s, sessions);
     const name = s.studentName || s.name || s.code;
-    return { ...s, sessions, last, isIn, totalMinutes, name };
+    return { ...s, sessions, last, hasAreaFlow, isIn, totalMinutes, name };
   }).sort((a, b) => {
     if (a.isIn !== b.isIn) return a.isIn ? -1 : 1;
     const aTime = a.last?.checkIn || '';

@@ -27,7 +27,7 @@ function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMon
 function timeNow(d=new Date()){return d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',hour12:false})}
 function minutesBetween(start,end){if(!start)return 0;const toMin=v=>{const [h,m]=v.split(':').map(Number);return h*60+m};return Math.max(0,toMin(end||timeNow())-toMin(start))}
 function duration(n){n=Math.max(0,Number(n)||0);const h=Math.floor(n/60),m=n%60;return h?`${h}시간 ${m}분`:`${m}분`}
-function normalize(raw={}){return{areas:raw.englishAreas||{},order:Array.isArray(raw.englishAreaOrder)?raw.englishAreaOrder:[],active:raw.activeEnglishArea||null,finished:Boolean(raw.englishV2Finished)}}
+function normalize(raw={}){const areas=raw.englishAreas||{},order=Array.isArray(raw.englishAreaOrder)?raw.englishAreaOrder:[];return{areas,order,active:raw.activeEnglishArea||null,finished:Boolean(raw.englishV2Finished)&&order.length===AREAS.length}}
 function areaState(state,id){return state.areas[id]||null}
 function currentMinutes(item){return item?Number.isFinite(item.durationMinutes)?item.durationMinutes:minutesBetween(item.start,item.end):0}
 function totalMinutes(state){return AREAS.reduce((sum,a)=>sum+currentMinutes(areaState(state,a.id)),0)}
@@ -61,7 +61,7 @@ function renderLessons(){
   $('timeline').innerHTML=AREAS.map((area,i)=>{const item=areaState(state,area.id),status=item?.end?'done':item?'active':'waiting';const detail=!item?'아직 시작 전':item.end?`${item.start} – ${item.end} · ${duration(currentMinutes(item))}`:`${item.start} 시작 · 수업 중`;return `<div class="step ${status}"><span class="step-num">${i+1}</span><div><strong>${area.name}</strong><small>${detail}</small></div><b>${status==='done'?'완료':status==='active'?'진행 중':'대기'}</b></div>`}).join('');
   const available=AREAS.filter(a=>!state.order.includes(a.id));
   const startButtons=available.map(a=>`<button class="lesson-btn ${a.id}" onclick="transition('${a.id}','start')"><span>${a.name}</span><small>${state.active?'이 방으로 이동':'수업 시작'}</small></button>`).join('');
-  const finishButton=`<button class="lesson-btn finish" onclick="requestFinish()"><span>퇴실</span><small>${available.length?'오늘 공부를 마칩니다':'모든 수업 완료 및 총 시간 확인'}</small></button>`;
+  const finishButton=`<button class="lesson-btn finish" onclick="requestFinish()"><span>퇴실</span><small>${available.length?'퇴실 및 총 시간 확인':'모든 수업 완료 및 총 시간 확인'}</small></button>`;
   $('lessonGuide').textContent=available.length?(state.active?'다른 수업으로 이동하면 현재 수업은 완료 처리됩니다.':'지금 들어갈 수업을 선택하세요'):'세 가지 수업을 모두 들었습니다. 퇴실을 눌러주세요.';
   $('lessonButtons').innerHTML=startButtons+finishButton;
 }
@@ -85,14 +85,16 @@ async function transition(areaId,action){
   try{
     const result=await db.runTransaction(async tx=>{
       const snap=await tx.get(current.ref),raw=snap.exists?snap.data():{},state=normalize(raw);
-      if(state.finished)throw new Error('오늘 수업은 이미 완료되었습니다.');
+      if(state.finished&&action!=='finish')throw new Error('오늘 수업은 이미 완료되었습니다.');
       if(action==='start'&&(!AREAS.some(a=>a.id===areaId)||state.order.includes(areaId)))throw new Error('이미 선택한 수업입니다.');
       if(action==='finish'&&!state.order.length)throw new Error('아직 시작한 수업이 없습니다.');
       const now=timeNow(),areas={...state.areas},order=[...state.order];
       if(state.active){const old={...areas[state.active]};old.end=now;old.durationMinutes=minutesBetween(old.start,now);areas[state.active]=old}
       let active=null;if(action==='start'){areas[areaId]={start:now,end:null,durationMinutes:null};order.push(areaId);active=areaId}
       const total=AREAS.reduce((sum,a)=>sum+currentMinutes(areas[a.id]),0);
-      const data={studentName:current.student.name,code:current.code,date:today(),englishV2:true,englishAreas:areas,englishAreaOrder:order,activeEnglishArea:active,englishV2Finished:action==='finish',durationMinutes:total,checkOut:action==='finish'?now:null};
+      const doneAll=order.length===AREAS.length;
+      const data={studentName:current.student.name,code:current.code,date:today(),englishV2:true,englishAreas:areas,englishAreaOrder:order,activeEnglishArea:active,englishV2Finished:action==='finish'&&doneAll,durationMinutes:total,checkOut:action==='finish'?now:null};
+      if(action==='start')data.checkOut=null;
       if(!snap.exists||!raw.checkIn)data.checkIn=now;
       tx.set(current.ref,data,{merge:true});return{raw:{...raw,...data},state:normalize(data),now};
     });

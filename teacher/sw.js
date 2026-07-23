@@ -1,4 +1,4 @@
-const CACHE = 'thinkup-teacher-v2-20260723-daily-report';
+const CACHE = 'thinkup-teacher-v2-20260723-reentry';
 const ASSETS = ['./', './index.html'];
 
 self.addEventListener('install', e => {
