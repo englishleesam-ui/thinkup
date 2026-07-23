@@ -1300,6 +1300,12 @@ function startAttendanceListener(students) {
       attendanceData = {};
       snap.forEach(doc => { attendanceData[doc.id] = doc.data(); });
       renderAllSections(students);
+    }, err => {
+      const el = document.getElementById('allSections');
+      if (el) {
+        el.innerHTML = `<div class="off-day"><div class="icon">⚠️</div>출석 기록을 읽지 못했습니다.<br><br>${escapeHtml(err.message || 'Firebase 권한을 확인해주세요.')}</div>`;
+      }
+      console.error(err);
     });
 }
 
