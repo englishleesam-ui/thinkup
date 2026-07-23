@@ -265,6 +265,32 @@
       padding: 0.34rem 0.62rem; font-size: 0.74rem; font-weight: 900; cursor: pointer; white-space: nowrap;
     }
     .daily-checkout-btn:active { background: #dbeafe; }
+    .daily-date-row {
+      background: white; border: 1px solid #dbe3ea; border-radius: 16px;
+      padding: 0.9rem; display: flex; align-items: center; gap: 0.65rem;
+      box-shadow: 0 2px 10px rgba(15,23,42,0.06); margin-bottom: 0.9rem;
+      position: sticky; top: 0; z-index: 2;
+    }
+    .daily-date-row label { color: #475569; font-size: 0.82rem; font-weight: 900; white-space: nowrap; }
+    .daily-date-row input {
+      flex: 1; min-width: 0; border: 2px solid #e2e8f0; border-radius: 10px;
+      padding: 0.65rem 0.78rem; font-size: 0.92rem; outline: none;
+    }
+    .daily-date-row button {
+      background: #0f766e; color: white; border: none; border-radius: 10px;
+      padding: 0.72rem 1rem; font-size: 0.86rem; font-weight: 900; cursor: pointer;
+    }
+    .daily-area-list { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .daily-area-chip {
+      display: inline-flex; flex-direction: column; gap: 0.12rem;
+      min-width: 4.5rem; border-radius: 10px; padding: 0.38rem 0.5rem;
+      border: 1px solid #e2e8f0; font-size: 0.72rem; font-weight: 900;
+    }
+    .daily-area-chip small { font-size: 0.65rem; font-weight: 800; opacity: 0.76; }
+    .daily-area-chip.done { background: #dcfce7; border-color: #86efac; color: #166534; }
+    .daily-area-chip.active { background: #fef3c7; border-color: #facc15; color: #92400e; }
+    .daily-area-chip.missing { background: #fee2e2; border-color: #fecaca; color: #b91c1c; }
+    .daily-auto-note { color: #b45309; font-size: 0.72rem; font-weight: 900; margin-top: 0.2rem; }
 
     /* ── 선생님 알림판 ── */
     .notice-card {
@@ -318,6 +344,8 @@
       .report-entry { align-items: stretch; flex-direction: column; }
       .report-btn { width: 100%; }
       .report-search { flex-direction: column; }
+      .daily-date-row { align-items: stretch; flex-direction: column; }
+      .daily-date-row button { width: 100%; }
       .report-search button { padding: 0.75rem 1rem; }
       .report-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .report-table { font-size: 0.74rem; }
@@ -612,6 +640,11 @@
     <button class="report-close" onclick="closeDailyReport()">✕ 닫기</button>
   </div>
   <div class="report-body">
+    <div class="daily-date-row">
+      <label for="dailyReportDate">날짜 선택</label>
+      <input id="dailyReportDate" type="date" onchange="loadDailyReportForSelectedDate()">
+      <button type="button" onclick="loadDailyReportForSelectedDate()">조회</button>
+    </div>
     <div id="dailyReportBody" class="report-message">오늘 출석 기록을 불러오는 중...</div>
   </div>
 </div>
@@ -944,13 +977,13 @@ async function markComplete(code, name) {
   }
 }
 
-async function forceCheckout(code, name) {
+async function forceCheckout(code, name, dateStr = '') {
   if (!confirm(`${name} 학생을 지금 시간으로 퇴실 처리할까요?`)) return;
   try {
     const now = new Date();
     const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    const todayStr = localDateString(now);
-    const ref = db.collection('attendance').doc(todayStr).collection('students').doc(code);
+    const targetDate = dateStr || localDateString(now);
+    const ref = db.collection('attendance').doc(targetDate).collection('students').doc(code);
     const snap = await ref.get();
     if (!snap.exists) return;
     const att = snap.data();
@@ -965,13 +998,29 @@ async function forceCheckout(code, name) {
     const updatedSessions = sessions.map((s, i) =>
       i === sessions.length - 1 ? { ...s, checkOut: timeStr, durationMinutes: sessionMinutes } : s
     );
-    const totalMinutes = updatedSessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0);
-    await ref.update({
+    const updateData = {
       sessions: updatedSessions,
       checkOut: timeStr,
       checkOutTimestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      durationMinutes: totalMinutes
-    });
+      durationMinutes: updatedSessions.reduce((sum, s) => sum + (s.durationMinutes || 0), 0)
+    };
+    if (att.activeEnglishArea) {
+      const areas = { ...(att.englishAreas || {}) };
+      const item = { ...(areas[att.activeEnglishArea] || {}) };
+      if (item.start && !item.end) {
+        item.end = timeStr;
+        item.durationMinutes = minutesBetweenClock(item.start, timeStr);
+        areas[att.activeEnglishArea] = item;
+      }
+      updateData.englishAreas = areas;
+      updateData.activeEnglishArea = null;
+      updateData.englishV2Finished = true;
+      updateData.durationMinutes = ENGLISH_AREAS.reduce((sum, area) => {
+        const areaItem = areas[area.id];
+        return sum + (Number.isFinite(areaItem?.durationMinutes) ? areaItem.durationMinutes : 0);
+      }, 0);
+    }
+    await ref.update(updateData);
   } catch(e) {
     alert('오류가 발생했습니다: ' + e.message);
   }
@@ -1407,10 +1456,27 @@ function getTodayAttendanceDateStr() {
 function openDailyReport() {
   const dateStr = getTodayAttendanceDateStr();
   document.getElementById('dailyReportOverlay').classList.add('active');
+  document.getElementById('dailyReportDate').value = dateStr;
+  loadDailyReport(dateStr);
+}
+
+function loadDailyReportForSelectedDate() {
+  const dateStr = document.getElementById('dailyReportDate').value || getTodayAttendanceDateStr();
+  loadDailyReport(dateStr);
+}
+
+function dailyDateLabel(dateStr) {
+  const [y, m, d] = String(dateStr).split('-').map(Number);
+  const date = new Date(y, (m || 1) - 1, d || 1);
+  const week = ['일','월','화','수','목','금','토'][date.getDay()];
+  return `${date.getMonth()+1}월 ${date.getDate()}일 (${week})`;
+}
+
+function loadDailyReport(dateStr) {
   document.getElementById('dailyReportSub').textContent =
-    `${currentSubject?.name || '전체'} · ${dateLabel} · 코드 입력 전체 학생`;
+    `${currentSubject?.name || '전체'} · ${dailyDateLabel(dateStr)} · 코드 입력 전체 학생`;
   document.getElementById('dailyReportBody').className = 'report-message';
-  document.getElementById('dailyReportBody').textContent = '오늘 출석 기록을 불러오는 중...';
+  document.getElementById('dailyReportBody').textContent = '출석 기록을 불러오는 중...';
 
   if (dailyReportUnsubscribe) dailyReportUnsubscribe();
   dailyReportUnsubscribe = db.collection('attendance').doc(dateStr)
@@ -1418,10 +1484,11 @@ function openDailyReport() {
     .onSnapshot(snap => {
       const students = [];
       snap.forEach(doc => students.push({ code: doc.id, ...doc.data() }));
-      renderDailyReport(students);
+      autoCheckoutLongRunning(dateStr, students);
+      renderDailyReport(students, dateStr);
     }, err => {
       document.getElementById('dailyReportBody').className = 'report-message';
-      document.getElementById('dailyReportBody').textContent = '오늘 출석 기록을 불러오지 못했습니다. 잠시 후 다시 열어주세요.';
+      document.getElementById('dailyReportBody').textContent = '출석 기록을 불러오지 못했습니다. 잠시 후 다시 열어주세요.';
       console.error(err);
     });
 }
@@ -1439,11 +1506,95 @@ function getDailyTotalMinutes(att, sessions) {
   return sessions.reduce((sum, s) => sum + (Number.isFinite(s.durationMinutes) ? s.durationMinutes : 0), 0);
 }
 
-function renderDailyReport(students) {
+function timeToMinutes(value) {
+  const [h, m] = String(value || '').split(':').map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
+  return h * 60 + m;
+}
+
+function minutesBetweenClock(start, end) {
+  const a = timeToMinutes(start), b = timeToMinutes(end);
+  if (a == null || b == null) return 0;
+  return Math.max(0, b - a);
+}
+
+function dailyNowForDate(dateStr) {
+  return dateStr === getTodayAttendanceDateStr() ? new Date() : new Date(`${dateStr}T23:59:00`);
+}
+
+function hasEnglishAreaData(att) {
+  return !!att?.englishV2 || !!att?.englishAreas || !!att?.englishAreaOrder || !!att?.activeEnglishArea;
+}
+
+function getDailyAreaRows(att, dateStr) {
+  const nowText = timeStringFromDate(dailyNowForDate(dateStr));
+  return ENGLISH_AREAS.map(area => {
+    const item = getEnglishAreaState(att, area.id);
+    if (item?.end) return { area, status: 'done', label: `${item.start || '-'} → ${item.end}`, minutes: Number.isFinite(item.durationMinutes) ? item.durationMinutes : minutesBetweenClock(item.start, item.end) };
+    if (item?.start) return { area, status: 'active', label: `${item.start} → 진행 중`, minutes: minutesBetweenClock(item.start, nowText) };
+    return { area, status: 'missing', label: '미수강', minutes: 0 };
+  });
+}
+
+function renderDailyAreaChips(att, dateStr) {
+  if (!hasEnglishAreaData(att)) return '<span class="report-entry-sub">영어 세부 수업 기록 없음</span>';
+  return `<div class="daily-area-list">${getDailyAreaRows(att, dateStr).map(row => {
+    const text = row.status === 'done' ? '완료' : (row.status === 'active' ? '수강 중' : '미수강');
+    return `<span class="daily-area-chip ${row.status}">
+      ${escapeHtml(row.area.name)} <small>${text}${row.minutes ? ` · ${fmt(row.minutes)}` : ''}</small>
+      <small>${escapeHtml(row.label)}</small>
+    </span>`;
+  }).join('')}</div>`;
+}
+
+function timeStringFromDate(date) {
+  return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
+}
+
+async function autoCheckoutLongRunning(dateStr, students) {
+  const nowDate = dailyNowForDate(dateStr);
+  const nowText = timeStringFromDate(nowDate);
+  const updates = students.filter(s => {
+    if (s.englishV2Finished || s.checkOut || !s.activeEnglishArea) return false;
+    const item = getEnglishAreaState(s, s.activeEnglishArea);
+    return item?.start && minutesBetweenClock(item.start, nowText) >= 180;
+  });
+  if (!updates.length) return;
+  await Promise.all(updates.map(async s => {
+    const areaId = s.activeEnglishArea;
+    const areas = { ...(s.englishAreas || {}) };
+    const item = { ...(areas[areaId] || {}) };
+    if (!item.start || item.end) return;
+    item.end = nowText;
+    item.durationMinutes = minutesBetweenClock(item.start, nowText);
+    areas[areaId] = item;
+    const total = ENGLISH_AREAS.reduce((sum, area) => {
+      const areaItem = areas[area.id];
+      if (!areaItem) return sum;
+      return sum + (Number.isFinite(areaItem.durationMinutes) ? areaItem.durationMinutes : minutesBetweenClock(areaItem.start, areaItem.end || nowText));
+    }, 0);
+    try {
+      await db.collection('attendance').doc(dateStr).collection('students').doc(s.code).set({
+        englishAreas: areas,
+        activeEnglishArea: null,
+        englishV2Finished: true,
+        autoCheckout: true,
+        autoCheckoutReason: '3시간 이상 코드 변동 없음',
+        checkOut: nowText,
+        durationMinutes: total,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch(e) {
+      console.error('auto checkout failed', s.code, e);
+    }
+  }));
+}
+
+function renderDailyReport(students, dateStr = getTodayAttendanceDateStr()) {
   const body = document.getElementById('dailyReportBody');
   if (!students.length) {
     body.className = 'report-message';
-    body.textContent = '오늘 코드가 입력된 학생 기록이 아직 없습니다.';
+    body.textContent = '이 날짜에는 코드가 입력된 학생 기록이 아직 없습니다.';
     return;
   }
 
@@ -1465,19 +1616,21 @@ function renderDailyReport(students) {
   const inCount = rows.filter(r => r.isIn).length;
   const outCount = rows.filter(r => !r.isIn && r.sessions.length).length;
   const shortCount = rows.filter(r => !r.isIn && r.sessions.length && r.totalMinutes < 90).length;
+  const fullAreaCount = rows.filter(r => hasEnglishAreaData(r) && getDailyAreaRows(r, dateStr).every(a => a.status === 'done')).length;
+  const missingAreaCount = rows.filter(r => hasEnglishAreaData(r) && getDailyAreaRows(r, dateStr).some(a => a.status === 'missing')).length;
 
   body.className = '';
   body.innerHTML = `
     <div class="report-summary-grid">
-      <div class="report-metric"><div class="report-metric-label">오늘 코드 입력</div><div class="report-metric-value">${rows.length}명</div></div>
+      <div class="report-metric"><div class="report-metric-label">코드 입력</div><div class="report-metric-value">${rows.length}명</div></div>
       <div class="report-metric"><div class="report-metric-label">현재 입실</div><div class="report-metric-value">${inCount}명</div></div>
-      <div class="report-metric"><div class="report-metric-label">퇴실 완료</div><div class="report-metric-value">${outCount}명</div></div>
-      <div class="report-metric"><div class="report-metric-label">1시간 30분 미만</div><div class="report-metric-value">${shortCount}명</div></div>
+      <div class="report-metric"><div class="report-metric-label">3수업 완료</div><div class="report-metric-value">${fullAreaCount}명</div></div>
+      <div class="report-metric"><div class="report-metric-label">미수강 있음</div><div class="report-metric-value">${missingAreaCount}명</div></div>
     </div>
     <div class="report-panel">
-      <div class="report-panel-title">오늘 입실 / 퇴실 현황</div>
+      <div class="report-panel-title">${escapeHtml(dailyDateLabel(dateStr))} 일간 리포트</div>
       <table class="report-table history-table">
-        <thead><tr><th>학생</th><th>상태</th><th>입실 시각</th><th>퇴실 시각</th><th>학습 시간</th></tr></thead>
+        <thead><tr><th>학생</th><th>상태</th><th>입실/퇴실</th><th>학습 시간</th><th>수강 현황</th></tr></thead>
         <tbody>
           ${rows.map(r => {
             const latestCheckIn = r.last?.checkIn || r.checkIn || '-';
@@ -1485,19 +1638,24 @@ function renderDailyReport(students) {
             const durationText = r.isIn ? '공부 중' : (r.sessions.length ? fmt(r.totalMinutes) : '-');
             const short = !r.isIn && r.sessions.length && r.totalMinutes < 90;
             const statusBadge = r.isIn
-              ? `<span class="badge-in">입실</span><br><button class="daily-checkout-btn" onclick="forceCheckout(decodeURIComponent('${encodeURIComponent(r.code)}'),decodeURIComponent('${encodeURIComponent(r.name)}'))">퇴실 완료</button>`
+              ? `<span class="badge-in">입실</span><br><button class="daily-checkout-btn" onclick="forceCheckout(decodeURIComponent('${encodeURIComponent(r.code)}'),decodeURIComponent('${encodeURIComponent(r.name)}'),'${dateStr}')">퇴실 완료</button>`
               : '<span class="badge-out">퇴실</span>';
             return `<tr class="${short ? 'short-row' : ''}">
               <td><div class="daily-name">${escapeHtml(r.name)}</div><div class="daily-code">코드 ${escapeHtml(r.code)}</div></td>
               <td>${statusBadge}</td>
-              <td>${escapeHtml(latestCheckIn)}</td>
-              <td>${escapeHtml(latestCheckOut || '-')}</td>
+              <td>${escapeHtml(latestCheckIn)} → ${escapeHtml(latestCheckOut || '-')}</td>
               <td>${escapeHtml(durationText)}</td>
+              <td>${renderDailyAreaChips(r, dateStr)}${r.autoCheckout ? '<div class="daily-auto-note">3시간 이상 코드 변동 없음 · 자동 퇴실</div>' : ''}</td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
-      <div class="report-entry-sub" style="margin-top:0.75rem">이 화면은 시간표 명단과 관계없이 오늘 학생 단말기에서 코드가 입력된 모든 기록을 보여줍니다.</div>
+      <div class="report-legend">
+        <span><i class="legend-dot" style="background:#dcfce7"></i>완료</span>
+        <span><i class="legend-dot" style="background:#fef3c7"></i>수강 중</span>
+        <span><i class="legend-dot" style="background:#fee2e2"></i>미수강</span>
+      </div>
+      <div class="report-entry-sub" style="margin-top:0.75rem">이 화면은 시간표 명단과 관계없이 선택한 날짜에 학생 단말기에서 코드가 입력된 모든 기록을 보여줍니다. 입실 후 3시간 동안 수업 이동이나 퇴실이 없으면 자동 퇴실 처리됩니다.</div>
     </div>`;
 }
 
