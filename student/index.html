@@ -9,7 +9,7 @@
 :root{--navy:#123c69;--ink:#172338;--muted:#68778a;--paper:#f4f7f9;--line:#d9e2ec;--orange:#d9542b;--blue:#176b87;--green:#42642c;--gold:#e0a817;--danger:#b42318}*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}html,body{height:100%;margin:0;overflow:hidden;font-family:"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:var(--ink)}button{font:inherit;cursor:pointer}.screen{display:none;min-height:100vh;min-height:100dvh;padding:24px}.screen.active{display:flex}.brand{font-size:24px;font-weight:950}.clock{font-weight:800}.eyebrow{margin:0 0 7px;color:#ef7445;font-size:13px;font-weight:950;letter-spacing:1.5px}.title{margin:0;font-size:clamp(34px,6vw,62px);line-height:1.08}.copy{margin:9px 0 0;color:var(--muted);font-size:clamp(18px,3vw,26px);font-weight:800;line-height:1.45}
 #entryScreen{flex-direction:column;justify-content:center;background:linear-gradient(145deg,#e8f0f6,#f9fbfc)}.topline{position:absolute;top:22px;left:24px;right:24px;display:flex;justify-content:space-between;color:var(--navy)}.entry-wrap{width:min(720px,100%);margin:auto}.code-row{display:grid;grid-template-columns:1fr 120px;gap:10px;margin:20px 0 12px}.code-box{display:flex;align-items:center;justify-content:center;min-height:78px;border:2px solid #cbd8e3;border-radius:14px;background:#fff;font-size:clamp(40px,8vw,64px);font-weight:950;letter-spacing:12px;color:var(--navy);box-shadow:0 8px 24px rgba(18,60,105,.08)}.code-submit{border:0;border-radius:14px;background:#16834a;color:#fff;font-weight:950}.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.key{min-height:68px;border:1px solid #116c3c;border-radius:12px;background:#16834a;color:#fff;font-size:27px;font-weight:950;box-shadow:0 3px 10px rgba(22,131,74,.14)}.key:active{transform:scale(.97)}.key.time-key{border:2px solid #16834a;background:#fff;color:#16834a}.key.time-key.active{background:#e9f8ef;color:#116c3c}.key.clear-key{background:#16834a;color:#fff}
 #confirmScreen,#lessonScreen,#timeScreen,#messageScreen{align-items:center;justify-content:center;background:var(--paper)}.card{width:min(720px,100%);max-height:calc(100dvh - 32px);overflow:auto;padding:clamp(24px,4vw,38px);border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 18px 45px rgba(18,60,105,.11)}.center{text-align:center}.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:24px}.confirm-btn{min-height:105px;border:0;border-radius:16px;color:#fff;font-size:25px;font-weight:950}.confirm-btn.yes{background:#16834a}.confirm-btn.no{background:var(--danger)}
-.timeline{display:grid;gap:8px;margin:20px 0}.step{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:11px;padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:#f8fafc}.step-num{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#e4ebf2;color:var(--muted);font-weight:950}.step strong,.step small{display:block}.step small{margin-top:2px;color:var(--muted);font-weight:700}.step>b{font-size:12px;color:var(--muted)}.step.active{border-color:#efa56d;background:#fff6ed}.step.active .step-num{background:#ef7445;color:#fff}.step.active>b{color:#bd4b21}.step.done{border-color:#99d1ad;background:#f1faf4}.step.done .step-num{background:#16834a;color:#fff}.step.done>b{color:#16834a}.lesson-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.lesson-btn{min-height:106px;padding:12px;border:0;border-radius:15px;color:#fff;box-shadow:0 9px 22px rgba(18,60,105,.14)}.lesson-btn span,.lesson-btn small{display:block}.lesson-btn span{font-size:clamp(25px,4vw,37px);font-weight:950}.lesson-btn small{margin-top:6px;font-weight:800;opacity:.86}.lesson-btn.grammar{background:var(--orange)}.lesson-btn.reading{background:var(--blue)}.lesson-btn.vocab{background:var(--green)}.lesson-btn.finish{grid-column:1/-1;background:var(--navy)}.cancel{display:block;margin:15px auto 0;padding:8px 12px;border:0;background:transparent;color:var(--muted);font-weight:800}
+.timeline{display:grid;gap:8px;margin:20px 0}.step{display:grid;grid-template-columns:40px 1fr auto;align-items:center;gap:11px;padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:#f8fafc}.step-num{display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:#e4ebf2;color:var(--muted);font-weight:950}.step strong,.step small{display:block}.step small{margin-top:2px;color:var(--muted);font-weight:700}.step>b{font-size:12px;color:var(--muted)}.step.active{border-color:#efa56d;background:#fff6ed}.step.active .step-num{background:#ef7445;color:#fff}.step.active>b{color:#bd4b21}.step.done{border-color:#d6dde6;background:#eef2f6;color:#8a98aa}.step.done .step-num{background:#9aa8b8;color:#fff}.step.done b,.step.done strong,.step.done small{color:#8a98aa}.lesson-buttons{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.lesson-btn{min-height:106px;padding:12px;border:0;border-radius:15px;color:#fff;box-shadow:0 9px 22px rgba(18,60,105,.14)}.lesson-btn span,.lesson-btn small{display:block}.lesson-btn span{font-size:clamp(25px,4vw,37px);font-weight:950}.lesson-btn small{margin-top:6px;font-weight:800;opacity:.86}.lesson-btn.grammar{background:var(--orange)}.lesson-btn.reading{background:var(--blue)}.lesson-btn.vocab{background:var(--green)}.lesson-btn.finish{grid-column:1/-1;background:var(--navy)}.cancel{display:block;margin:15px auto 0;padding:8px 12px;border:0;background:transparent;color:var(--muted);font-weight:800}
 #timeScreen{background:#fff9df}.time-list{display:grid;gap:10px;margin:20px 0}.time-item{display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;padding:17px;border-left:7px solid var(--navy);border-radius:13px;background:#fff;box-shadow:0 5px 16px rgba(18,60,105,.08)}.time-item.grammar{border-left-color:var(--orange)}.time-item.reading{border-left-color:var(--blue)}.time-item.vocab{border-left-color:var(--green)}.time-item.active{outline:3px solid #ffd45f}.time-item span,.time-item small{display:block}.time-item span{font-size:21px;font-weight:950}.time-item small{margin-top:3px;color:var(--muted);font-weight:700}.time-item strong{font-size:clamp(24px,4vw,36px);color:var(--navy);white-space:nowrap}.total{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:19px;border-radius:14px;background:#654700;color:#fff}.total span{font-weight:900}.total strong{color:#ffe173;font-size:clamp(30px,5vw,47px)}.close{width:100%;min-height:55px;margin-top:11px;border:0;border-radius:12px;background:var(--gold);color:#fff;font-size:18px;font-weight:950}
 #messageScreen{color:#fff;text-align:center;background:linear-gradient(145deg,#123c69,#176b87)}#messageScreen.error{background:linear-gradient(145deg,#7f1d1d,#dc2626)}.message-icon{font-size:62px}.message-title{margin:12px 0 4px;font-size:clamp(34px,6vw,58px)}.message-copy{font-size:clamp(19px,3vw,28px);font-weight:800;line-height:1.5}.message-highlight{display:inline-block;margin-top:15px;padding:12px 20px;border-radius:14px;background:#fff;color:var(--navy);font-size:clamp(35px,7vw,65px);font-weight:950}.message-wait{margin-top:22px;opacity:.7}
 @media(max-width:620px){.screen{padding:14px}.topline{top:13px;left:15px;right:15px}.card{max-height:calc(100dvh - 20px);padding:20px 16px}.code-row{grid-template-columns:1fr 90px}.key{min-height:58px}.lesson-buttons{grid-template-columns:1fr}.lesson-btn{min-height:72px}}@media(max-height:650px){.entry-wrap .title{font-size:30px}.entry-wrap .copy{font-size:15px}.code-row{margin:10px 0 8px}.code-box{min-height:55px;font-size:38px}.keypad{gap:5px}.key{min-height:45px}.card{padding:15px}.timeline{margin:10px 0}.step{padding:8px}.lesson-btn{min-height:65px}.confirm-btn{min-height:75px}}
@@ -48,17 +48,37 @@ async function submitCode(){
     $('confirmName').textContent=`${current.student.name} 학생`;setScreen('confirmScreen');
   }catch(e){showMessage('❓','코드를 확인해주세요',e.message,'error')}finally{processing=false}
 }
-function confirmStudent(){
+async function confirmStudent(){
   if(!current)return;
-  if(current.state.finished){showMessage('✅',`${current.student.name} 학생`,'오늘 영어 수업을 모두 마쳤습니다.','',duration(totalMinutes(current.state)),9000);return}
+  if(current.state.finished){showMessage('✅',`${current.student.name} 학생`,'오늘 공부가 끝났습니다.','오늘 총 공부시간',duration(totalMinutes(current.state)),9000);return}
+  if(current.state.active){
+    try{await closeActiveArea()}catch(e){showMessage('⚠️','처리하지 못했습니다',e.message,'error');return}
+  }
   setScreen('lessonScreen');renderLessons();
 }
 function renderLessons(){
   const state=current.state;$('lessonName').textContent=`${current.student.name} 학생`;
   $('timeline').innerHTML=AREAS.map((area,i)=>{const item=areaState(state,area.id),status=item?.end?'done':item?'active':'waiting';const detail=!item?'아직 시작 전':item.end?`${item.start} – ${item.end} · ${duration(currentMinutes(item))}`:`${item.start} 시작 · 수업 중`;return `<div class="step ${status}"><span class="step-num">${i+1}</span><div><strong>${area.name}</strong><small>${detail}</small></div><b>${status==='done'?'완료':status==='active'?'진행 중':'대기'}</b></div>`}).join('');
   const available=AREAS.filter(a=>!state.order.includes(a.id));
-  if(available.length){$('lessonGuide').textContent=state.active?'현재 수업을 마쳤다면 다음 수업을 선택하세요.':'지금 들어갈 수업을 선택하세요.';$('lessonButtons').innerHTML=available.map(a=>`<button class="lesson-btn ${a.id}" onclick="transition('${a.id}','start')"><span>${a.name}</span><small>${state.active?'다음 수업 시작':'수업 시작'}</small></button>`).join('')}
-  else{$('lessonGuide').textContent='세 가지 수업을 모두 들었습니다.';$('lessonButtons').innerHTML=`<button class="lesson-btn finish" onclick="transition('','finish')"><span>오늘 영어 수업 마치기</span><small>마지막 수업 종료 및 총 시간 확인</small></button>`}
+  const startButtons=available.map(a=>`<button class="lesson-btn ${a.id}" onclick="transition('${a.id}','start')"><span>${a.name}</span><small>${state.active?'이 방으로 이동':'수업 시작'}</small></button>`).join('');
+  const finishButton=`<button class="lesson-btn finish" onclick="requestFinish()"><span>퇴실</span><small>${available.length?'오늘 공부를 마칩니다':'모든 수업 완료 및 총 시간 확인'}</small></button>`;
+  $('lessonGuide').textContent=available.length?(state.active?'다른 수업으로 이동하면 현재 수업은 완료 처리됩니다.':'지금 들어갈 수업을 선택하세요'):'세 가지 수업을 모두 들었습니다. 퇴실을 눌러주세요.';
+  $('lessonButtons').innerHTML=startButtons+finishButton;
+}
+function missingAreaNames(state=current.state){return AREAS.filter(a=>!state.order.includes(a.id)).map(a=>a.name)}
+function requestFinish(){if(!current)return;const missing=missingAreaNames();if(missing.length&&!confirm(`아직 ${missing.join(', ')} 수업이 남아있습니다. 정말 퇴실입니까?`))return;transition('','finish')}
+async function closeActiveArea(){
+  const result=await db.runTransaction(async tx=>{
+    const snap=await tx.get(current.ref),raw=snap.exists?snap.data():{},state=normalize(raw);
+    if(state.finished||!state.active)return{raw,state};
+    const now=timeNow(),areas={...state.areas},old={...areas[state.active]};
+    old.end=now;old.durationMinutes=minutesBetween(old.start,now);areas[state.active]=old;
+    const total=AREAS.reduce((sum,a)=>sum+currentMinutes(areas[a.id]),0);
+    const data={englishAreas:areas,activeEnglishArea:null,durationMinutes:total};
+    tx.set(current.ref,data,{merge:true});
+    return{raw:{...raw,...data},state:normalize({...raw,...data})};
+  });
+  current.raw=result.raw;current.state=result.state;
 }
 async function transition(areaId,action){
   if(processing||!current)return;processing=true;document.querySelectorAll('#lessonButtons button').forEach(b=>b.disabled=true);
@@ -67,7 +87,7 @@ async function transition(areaId,action){
       const snap=await tx.get(current.ref),raw=snap.exists?snap.data():{},state=normalize(raw);
       if(state.finished)throw new Error('오늘 수업은 이미 완료되었습니다.');
       if(action==='start'&&(!AREAS.some(a=>a.id===areaId)||state.order.includes(areaId)))throw new Error('이미 선택한 수업입니다.');
-      if(action==='finish'&&(state.order.length!==3||!state.active))throw new Error('세 수업을 모두 진행한 뒤 마칠 수 있습니다.');
+      if(action==='finish'&&!state.order.length)throw new Error('아직 시작한 수업이 없습니다.');
       const now=timeNow(),areas={...state.areas},order=[...state.order];
       if(state.active){const old={...areas[state.active]};old.end=now;old.durationMinutes=minutesBetween(old.start,now);areas[state.active]=old}
       let active=null;if(action==='start'){areas[areaId]={start:now,end:null,durationMinutes:null};order.push(areaId);active=areaId}
@@ -77,7 +97,7 @@ async function transition(areaId,action){
       tx.set(current.ref,data,{merge:true});return{raw:{...raw,...data},state:normalize(data),now};
     });
     current.raw=result.raw;current.state=result.state;
-    if(action==='finish')showMessage('🏁',`${current.student.name} 학생`,'문법·독해·단어 수업을 모두 마쳤습니다.','',duration(totalMinutes(current.state)),9000);
+    if(action==='finish')showMessage('🏁',`${current.student.name} 학생`,'퇴실 처리되었습니다.','오늘 총 공부시간',duration(totalMinutes(current.state)),9000);
     else{const area=AREAS.find(a=>a.id===areaId);showMessage('✅',`${area.name} 수업 시작`,`${result.now}에 시작했습니다.`,'','',4500)}
   }catch(e){showMessage('⚠️','처리하지 못했습니다',e.message,'error')}finally{processing=false}
 }

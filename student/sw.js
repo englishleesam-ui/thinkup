@@ -1,4 +1,4 @@
-const CACHE = 'thinkup-student-v2-20260723-keypad';
+const CACHE = 'thinkup-student-v2-20260723-rooms';
 const ASSETS = ['./', './index.html'];
 
 self.addEventListener('install', e => {

@@ -1,4 +1,4 @@
-const CACHE = 'thinkup-teacher-v1';
+const CACHE = 'thinkup-teacher-v2-20260723-rooms';
 const ASSETS = ['./', './index.html'];
 
 self.addEventListener('install', e => {
