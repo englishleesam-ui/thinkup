@@ -182,8 +182,12 @@
     .expected-count { background: #fff200; color: #713f12; border-radius: 999px; padding: 0.18rem 0.55rem; font-size: 0.76rem; font-weight: 900; }
     .expected-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 0.45rem; }
     .expected-chip { border: 1px solid #dbe6ef; border-radius: 10px; padding: 0.55rem 0.62rem; background: #f8fbfd; display: flex; align-items: center; justify-content: space-between; gap: 0.45rem; }
+    .expected-chip.extra { background: #fff7ed; border-color: #fed7aa; }
+    .expected-chip-text { min-width: 0; display: grid; gap: 0.12rem; }
     .expected-chip strong { color: #0f172a; font-size: 0.9rem; }
     .expected-chip span { color: #64748b; font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .expected-delete { border: 0; border-radius: 8px; background: #fee2e2; color: #b91c1c; font-size: 0.72rem; font-weight: 900; padding: 0.34rem 0.46rem; cursor: pointer; flex-shrink: 0; }
+    .expected-delete:active { transform: scale(0.96); }
     .expected-empty { color: #64748b; font-size: 0.84rem; line-height: 1.45; padding: 0.35rem 0; }
     #studentReportOverlay,
     #dailyReportOverlay {
@@ -1072,25 +1076,65 @@ function renderExpectedDashboard() {
   if (!listEl || !countEl || !subEl) return;
   const expected = getExpectedTodayStudents();
   const pending = expected.filter(s => !expectedDashboardAttendance[s.code]?.checkIn);
+  const expectedCodes = new Set(expected.map(s => s.code));
+  const extra = Object.entries(expectedDashboardAttendance)
+    .map(([code, att]) => ({
+      code: String(att.code || code).padStart(4, '0'),
+      name: att.studentName || att.name || code,
+      grade: att.grade || '',
+      att
+    }))
+    .filter(s => s.att?.checkIn && !expectedCodes.has(s.code))
+    .sort((a,b) => String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
   countEl.textContent = `${pending.length}명`;
   subEl.textContent = `${dateLabel} 등원 예정 · 출석하면 이 목록에서 자동으로 사라집니다.`;
-  if (!expected.length) {
-    listEl.className = '';
-    listEl.innerHTML = '<div class="expected-empty">오늘 예정으로 체크된 학생이 없습니다.</div>';
-    return;
-  }
-  if (!pending.length) {
-    listEl.className = '';
-    listEl.innerHTML = '<div class="expected-empty">오늘 예정 학생이 모두 출석했습니다.</div>';
-    return;
-  }
   listEl.className = 'expected-grid';
-  listEl.innerHTML = pending.map(s => `
+  const pendingHtml = pending.map(s => `
     <div class="expected-chip">
-      <strong>${escapeHtml(s.name)}</strong>
-      <span>${escapeHtml(s.grade || '')} · ${escapeHtml(s.code)}</span>
+      <div class="expected-chip-text">
+        <strong>${escapeHtml(s.name)}</strong>
+        <span>${escapeHtml(s.grade || '')} · ${escapeHtml(s.code)}</span>
+      </div>
+      <button class="expected-delete" onclick="removeExpectedStudent('${escapeHtml(s.code)}')">삭제</button>
     </div>
   `).join('');
+  const extraHtml = extra.map(s => `
+    <div class="expected-chip extra">
+      <div class="expected-chip-text">
+        <strong>${escapeHtml(s.name)}</strong>
+        <span>예정 외 출석 · ${escapeHtml(s.code)}</span>
+      </div>
+    </div>
+  `).join('');
+  if (!pendingHtml && !extraHtml) {
+    listEl.className = '';
+    listEl.innerHTML = expected.length
+      ? '<div class="expected-empty">오늘 예정 학생이 모두 출석했습니다.</div>'
+      : '<div class="expected-empty">오늘 예정으로 체크된 학생이 없습니다.</div>';
+    return;
+  }
+  listEl.innerHTML = `${pendingHtml}${extraHtml}`;
+}
+
+async function removeExpectedStudent(code) {
+  const normalized = String(code || '').padStart(4, '0');
+  const target = getExpectedTodayStudents().find(s => s.code === normalized);
+  const name = target?.name || normalized;
+  if (!confirm(`${name} 학생을 오늘의 학생에서 삭제할까요?`)) return;
+  const days = { ...(expectedAttendance || {}) };
+  days[todayCode] = (days[todayCode] || []).filter(s => String(s.code || '').padStart(4, '0') !== normalized);
+  expectedAttendance = days;
+  renderExpectedDashboard();
+  try {
+    await db.collection('timetable').doc('expected_attendance').set({
+      days,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentSubject?.name || 'teacher'
+    }, { merge: true });
+    renderTeacherList();
+  } catch (e) {
+    alert('오늘의 학생 삭제 중 오류가 발생했습니다: ' + e.message);
+  }
 }
 
 function startExpectedDashboardListener() {
