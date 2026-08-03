@@ -318,16 +318,19 @@
     }
     .notice-card-message {
       color: #dc2626; font-size: 0.95rem; line-height: 1.55; white-space: pre-wrap;
-      font-weight: 900; animation: noticeBlink 1s infinite;
     }
-    .notice-card-message.empty { color: #94a3b8; font-weight: 400; animation: none; }
-    .notice-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; margin-top: 0.8rem; }
+    .notice-card-message.notice-bold, .notice-view-text.notice-bold { font-weight: 900; }
+    .notice-card-message.notice-blink, .notice-view-text.notice-blink { animation: noticeBlink 1s infinite; }
+    .notice-card-message.notice-highlight, .notice-view-text.notice-highlight { background: #fff200; border-radius: 10px; padding: 0.72rem; }
+    .notice-card-message.empty { color: #94a3b8; font-weight: 400; animation: none; background: transparent; padding: 0; }
+    .notice-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; margin-top: 0.8rem; }
     .notice-btn {
       border: none; border-radius: 10px; padding: 0.72rem 0.8rem; font-size: 0.86rem;
       font-weight: 900; cursor: pointer;
     }
     .notice-btn.primary { background: #0f766e; color: white; }
     .notice-btn.secondary { background: #eef2f7; color: #334155; }
+    .notice-btn.danger { background: #fee2e2; color: #b91c1c; }
     .notice-overlay {
       display: none; position: fixed; inset: 0; z-index: 230; background: rgba(15,23,42,0.5);
       align-items: center; justify-content: center; padding: 1rem;
@@ -343,13 +346,15 @@
     .notice-dialog-body { padding: 1.1rem; }
     .notice-view-text {
       min-height: 120px; color: #dc2626; font-size: 1.08rem; line-height: 1.65; white-space: pre-wrap;
-      font-weight: 900; animation: noticeBlink 1s infinite;
     }
     .notice-editor {
       width: 100%; min-height: 180px; resize: vertical; border: 2px solid #dbe3ea; border-radius: 12px;
       padding: 0.9rem; font-size: 0.95rem; line-height: 1.55; outline: none;
     }
     .notice-editor:focus { border-color: #0f766e; }
+    .notice-style-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; margin-top: 0.8rem; }
+    .notice-style-tool { border: 1px solid #dbe3ea; border-radius: 10px; padding: 0.65rem 0.75rem; background: #f8fbfd; display: flex; align-items: center; gap: 0.5rem; color: #334155; font-size: 0.86rem; font-weight: 800; }
+    .notice-style-tool select { width: 100%; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.45rem 0.55rem; background: #fff; font: inherit; }
     .notice-dialog-actions { display: flex; justify-content: flex-end; gap: 0.55rem; margin-top: 1rem; }
     @media (max-width: 640px) {
       .header-right { gap: 0.35rem; }
@@ -550,8 +555,9 @@
       </div>
       <div class="notice-card-message empty" id="noticeMessage">알림을 불러오는 중입니다.</div>
       <div class="notice-actions">
-        <button class="notice-btn secondary" onclick="openNoticeView()">알림판 보기</button>
-        <button class="notice-btn primary" onclick="openNoticeEditor()">알림판 작성</button>
+        <button class="notice-btn primary" onclick="openNoticeEditor('create')">제작하기</button>
+        <button class="notice-btn secondary" onclick="openNoticeEditor('edit')">수정하기</button>
+        <button class="notice-btn danger" onclick="disableNotice()">해지하기</button>
       </div>
     </div>
   </div>
@@ -613,8 +619,9 @@
     <div class="notice-dialog-body">
       <div class="notice-view-text" id="noticeViewText"></div>
       <div class="notice-dialog-actions">
-        <button class="notice-btn secondary" onclick="closeNoticeView()">닫기</button>
-        <button class="notice-btn primary" onclick="openNoticeEditor()">수정하기</button>
+        <button class="notice-btn primary" onclick="openNoticeEditor('create')">제작하기</button>
+        <button class="notice-btn secondary" onclick="openNoticeEditor('edit')">수정하기</button>
+        <button class="notice-btn danger" onclick="disableNotice()">해지하기</button>
       </div>
     </div>
   </div>
@@ -629,6 +636,20 @@
     </div>
     <div class="notice-dialog-body">
       <textarea class="notice-editor" id="noticeEditorText" placeholder="알림 내용을 입력하세요"></textarea>
+      <div class="notice-style-tools">
+        <label class="notice-style-tool"><input type="checkbox" id="noticeStyleBold" checked> Bold</label>
+        <label class="notice-style-tool"><input type="checkbox" id="noticeStyleBlink" checked> 깜박이기</label>
+        <label class="notice-style-tool"><input type="checkbox" id="noticeStyleHighlight"> Highlight</label>
+        <label class="notice-style-tool">
+          <select id="noticeStyleColor">
+            <option value="#dc2626">빨간색</option>
+            <option value="#0f766e">초록색</option>
+            <option value="#1d4ed8">파란색</option>
+            <option value="#92400e">갈색</option>
+            <option value="#111827">검정색</option>
+          </select>
+        </label>
+      </div>
       <div class="notice-dialog-actions">
         <button class="notice-btn secondary" onclick="closeNoticeEditor()">취소</button>
         <button class="notice-btn primary" onclick="saveNotice()">저장</button>
@@ -884,7 +905,36 @@ function startNoticeListener() {
 }
 
 function getNoticeMessage(notice = currentNotice) {
-  return String(notice?.message || '').trim();
+  return getNoticePayload(notice).text;
+}
+
+function getNoticePayload(notice = currentNotice) {
+  const raw = String(notice?.message || '').trim();
+  const fallbackStyle = { bold: true, color: '#dc2626', blink: true, highlight: false };
+  if (!raw) return { text: '', active: false, style: fallbackStyle };
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && parsed.kind === 'thinkupNotice') {
+      return {
+        text: String(parsed.text || '').trim(),
+        active: parsed.active !== false,
+        style: { ...fallbackStyle, ...(parsed.style || {}) }
+      };
+    }
+  } catch (_) {}
+  return { text: raw, active: true, style: fallbackStyle };
+}
+
+function serializeNoticePayload(text, style, active = true) {
+  return JSON.stringify({ kind: 'thinkupNotice', text, style, active });
+}
+
+function applyNoticeStyle(el, payload) {
+  el.classList.remove('notice-bold', 'notice-blink', 'notice-highlight');
+  el.style.color = payload.style?.color || '#dc2626';
+  if (payload.style?.bold) el.classList.add('notice-bold');
+  if (payload.style?.blink) el.classList.add('notice-blink');
+  if (payload.style?.highlight) el.classList.add('notice-highlight');
 }
 
 function getNoticeKey(notice = currentNotice) {
@@ -894,15 +944,22 @@ function getNoticeKey(notice = currentNotice) {
 }
 
 function renderNotice(notice) {
-  const message = getNoticeMessage(notice);
+  const payload = getNoticePayload(notice);
+  const message = payload.active ? payload.text : '';
   const msgEl = document.getElementById('noticeMessage');
   document.getElementById('noticeUpdated').textContent = message ? `최근 수정 ${formatNoticeTime(notice?.updatedAt)}` : '작성된 알림 없음';
   msgEl.textContent = message || '아직 등록된 알림이 없습니다.';
   msgEl.classList.toggle('empty', !message);
+  if (message) applyNoticeStyle(msgEl, payload);
+  else {
+    msgEl.classList.remove('notice-bold', 'notice-blink', 'notice-highlight');
+    msgEl.style.color = '';
+  }
 }
 
 function maybeOpenNoticeFirst(notice) {
-  const message = getNoticeMessage(notice);
+  const payload = getNoticePayload(notice);
+  const message = payload.active ? payload.text : '';
   if (!message) return;
   const key = getNoticeKey(notice);
   if (!key || noticeAutoShownFor === key) return;
@@ -911,9 +968,12 @@ function maybeOpenNoticeFirst(notice) {
 }
 
 function openNoticeView() {
-  const message = getNoticeMessage();
+  const payload = getNoticePayload();
+  const message = payload.active ? payload.text : '';
+  const viewEl = document.getElementById('noticeViewText');
   document.getElementById('noticeViewSub').textContent = currentNotice?.updatedAt ? `최근 수정 ${formatNoticeTime(currentNotice.updatedAt)}` : '';
-  document.getElementById('noticeViewText').textContent = message || '아직 등록된 알림이 없습니다.';
+  viewEl.textContent = message || '아직 등록된 알림이 없습니다.';
+  applyNoticeStyle(viewEl, payload);
   document.getElementById('noticeViewOverlay').classList.add('active');
 }
 
@@ -921,9 +981,14 @@ function closeNoticeView() {
   document.getElementById('noticeViewOverlay').classList.remove('active');
 }
 
-function openNoticeEditor() {
+function openNoticeEditor(mode = 'edit') {
   closeNoticeView();
-  document.getElementById('noticeEditorText').value = getNoticeMessage();
+  const payload = mode === 'create' ? { text: '', style: { bold: true, color: '#dc2626', blink: true, highlight: false } } : getNoticePayload();
+  document.getElementById('noticeEditorText').value = payload.text || '';
+  document.getElementById('noticeStyleBold').checked = payload.style?.bold !== false;
+  document.getElementById('noticeStyleBlink').checked = payload.style?.blink !== false;
+  document.getElementById('noticeStyleHighlight').checked = !!payload.style?.highlight;
+  document.getElementById('noticeStyleColor').value = payload.style?.color || '#dc2626';
   document.getElementById('noticeEditorOverlay').classList.add('active');
   setTimeout(() => document.getElementById('noticeEditorText').focus(), 80);
 }
@@ -934,15 +999,37 @@ function closeNoticeEditor() {
 
 async function saveNotice() {
   const message = document.getElementById('noticeEditorText').value.trim();
+  const style = {
+    bold: document.getElementById('noticeStyleBold').checked,
+    blink: document.getElementById('noticeStyleBlink').checked,
+    highlight: document.getElementById('noticeStyleHighlight').checked,
+    color: document.getElementById('noticeStyleColor').value || '#dc2626'
+  };
   try {
     await db.collection('notices').doc('teacherBoard').set({
-      message,
+      message: serializeNoticePayload(message, style, !!message),
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       updatedBy: currentSubject?.name || '전체'
     }, { merge: true });
     closeNoticeEditor();
   } catch (e) {
     alert('알림판 저장 중 오류가 발생했습니다: ' + e.message);
+  }
+}
+
+async function disableNotice() {
+  if (!confirm('알림판을 해지할까요? 선생님 화면에는 알림이 표시되지 않습니다.')) return;
+  closeNoticeView();
+  closeNoticeEditor();
+  const payload = getNoticePayload();
+  try {
+    await db.collection('notices').doc('teacherBoard').set({
+      message: serializeNoticePayload(payload.text || '', payload.style || { bold: true, color: '#dc2626', blink: true, highlight: false }, false),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: currentSubject?.name || '전체'
+    }, { merge: true });
+  } catch (e) {
+    alert('알림판 해지 중 오류가 발생했습니다: ' + e.message);
   }
 }
 
