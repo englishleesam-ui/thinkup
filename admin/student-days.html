@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>학생 시간표 - ThinkUp</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="../firebase-config.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: #eef4f6; color: #172033; min-height: 100vh; }
+    .topbar { position: sticky; top: 0; z-index: 5; background: #164a7a; color: #fff; padding: 1rem 1.4rem; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 18px rgba(15,23,42,0.16); }
+    .topbar h1 { font-size: 1.08rem; font-weight: 900; }
+    .top-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .top-actions a, .top-actions button { border: 0; border-radius: 9px; padding: 0.55rem 0.82rem; background: rgba(255,255,255,0.15); color: white; text-decoration: none; font-weight: 800; cursor: pointer; }
+    .wrap { max-width: 1120px; margin: 1.4rem auto 3rem; padding: 0 1rem; }
+    .panel { background: white; border: 1px solid #dbe6ef; border-radius: 14px; box-shadow: 0 10px 28px rgba(15,23,42,0.08); overflow: hidden; }
+    .panel-head { display: flex; align-items: end; justify-content: space-between; gap: 1rem; padding: 1.2rem; border-bottom: 1px solid #e5edf4; background: #f8fbfd; }
+    .panel-title { font-size: 1.28rem; font-weight: 900; color: #0f2742; }
+    .panel-sub { color: #64748b; font-size: 0.86rem; margin-top: 0.25rem; line-height: 1.45; }
+    .tools { display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+    .search { width: 230px; border: 1px solid #cbd8e4; border-radius: 10px; padding: 0.7rem 0.85rem; outline: none; font-size: 0.92rem; }
+    .search:focus { border-color: #164a7a; box-shadow: 0 0 0 3px rgba(22,74,122,0.12); }
+    .save-btn { border: 0; border-radius: 10px; padding: 0.72rem 1rem; background: #10b981; color: white; font-weight: 900; cursor: pointer; }
+    .save-btn.saving { background: #64748b; }
+    .status { min-height: 1.2rem; color: #64748b; font-size: 0.82rem; padding: 0.65rem 1.2rem; border-bottom: 1px solid #edf2f7; }
+    .table-wrap { overflow: auto; max-height: calc(100vh - 230px); }
+    table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 760px; }
+    th { position: sticky; top: 0; z-index: 2; background: #164a7a; color: #fff; text-align: left; font-size: 0.9rem; padding: 0.72rem 0.75rem; border-right: 1px solid rgba(255,255,255,0.22); }
+    th.day-head { text-align: center; width: 82px; }
+    td { padding: 0.55rem 0.75rem; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; background: #fff; font-size: 0.92rem; }
+    td.grade { background: #eef6f2; width: 90px; font-weight: 800; color: #24523f; }
+    td.code { width: 110px; font-weight: 800; color: #164a7a; font-variant-numeric: tabular-nums; }
+    td.day-cell { cursor: pointer; text-align: center; transition: background 0.12s, box-shadow 0.12s; }
+    td.day-cell:hover { background: #fefce8; }
+    td.day-cell.active { background: #fff200; box-shadow: inset 0 0 0 2px #facc15; }
+    td.day-cell.active::after { content: "예정"; font-size: 0.72rem; font-weight: 900; color: #713f12; }
+    tr.hidden { display: none; }
+    .loading, .empty { padding: 3rem 1rem; text-align: center; color: #64748b; font-weight: 800; }
+    @media (max-width: 720px) {
+      .panel-head { align-items: stretch; flex-direction: column; }
+      .tools { justify-content: stretch; }
+      .search, .save-btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>ThinkUp 학생 시간표</h1>
+    <div class="top-actions">
+      <a href="./">관리자 홈</a>
+      <button onclick="logout()">로그아웃</button>
+    </div>
+  </div>
+
+  <main class="wrap">
+    <section class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title">학생별 등원 예정 요일</div>
+          <div class="panel-sub">요일 칸을 누르면 노란색으로 표시됩니다. 노란색 학생은 해당 요일 “오늘의 학생”에 표시됩니다.</div>
+        </div>
+        <div class="tools">
+          <input class="search" id="searchInput" placeholder="이름 또는 코드 검색" oninput="renderRows()">
+          <button class="save-btn" id="saveBtn" onclick="saveExpectedDays()">저장</button>
+        </div>
+      </div>
+      <div class="status" id="status">불러오는 중...</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>학년</th>
+              <th>이름</th>
+              <th>출석코드</th>
+              <th class="day-head">월</th>
+              <th class="day-head">화</th>
+              <th class="day-head">수</th>
+              <th class="day-head">목</th>
+              <th class="day-head">금</th>
+              <th class="day-head">토</th>
+              <th class="day-head">일</th>
+            </tr>
+          </thead>
+          <tbody id="studentRows"><tr><td colspan="10" class="loading">학생 명단을 불러오는 중입니다.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+<script>
+if (!sessionStorage.getItem('thinkup_admin')) location.href = './';
+
+const DAY_CODES = ['mon','tue','wed','thu','fri','sat','sun'];
+const DAY_LABEL = {mon:'월',tue:'화',wed:'수',thu:'수',fri:'금',sat:'토',sun:'일'};
+const GRADE_ORDER = ['초3','초4','초5','초6','중1','중2','중3','고1','고2','고3'];
+let students = [];
+let expectedByDay = {};
+let saveTimer = null;
+
+function logout() {
+  sessionStorage.removeItem('thinkup_admin');
+  location.href = './';
+}
+
+function setStatus(text, type = '') {
+  const el = document.getElementById('status');
+  el.textContent = text;
+  el.style.color = type === 'error' ? '#dc2626' : (type === 'success' ? '#047857' : '#64748b');
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+}
+
+function normalizeStudent(doc) {
+  const data = doc.data();
+  const code = String(data.code || doc.id).padStart(4, '0');
+  return { code, name: data.name || data.studentName || code, grade: data.grade || '' };
+}
+
+async function loadData() {
+  try {
+    DAY_CODES.forEach(day => expectedByDay[day] = new Set());
+    const [studentSnap, expectedDoc] = await Promise.all([
+      db.collection('students').get(),
+      db.collection('timetable').doc('expected_attendance').get()
+    ]);
+    students = [];
+    studentSnap.forEach(doc => students.push(normalizeStudent(doc)));
+    students.sort((a,b) => {
+      const gd = GRADE_ORDER.indexOf(a.grade) - GRADE_ORDER.indexOf(b.grade);
+      if (gd !== 0) return gd;
+      return a.code.localeCompare(b.code);
+    });
+    const savedDays = expectedDoc.exists ? (expectedDoc.data().days || {}) : {};
+    DAY_CODES.forEach(day => {
+      expectedByDay[day] = new Set((savedDays[day] || []).map(s => String(s.code).padStart(4, '0')));
+    });
+    renderRows();
+    setStatus(`학생 ${students.length}명 불러옴 · 요일을 누르면 자동 저장됩니다.`);
+  } catch (error) {
+    document.getElementById('studentRows').innerHTML = `<tr><td colspan="10" class="empty">불러오기 실패: ${escapeHtml(error.message)}</td></tr>`;
+    setStatus('Firebase 권한 또는 네트워크를 확인해주세요.', 'error');
+  }
+}
+
+function renderRows() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const filtered = students.filter(s => !q || s.name.toLowerCase().includes(q) || s.code.includes(q) || s.grade.includes(q));
+  const body = document.getElementById('studentRows');
+  if (!filtered.length) {
+    body.innerHTML = '<tr><td colspan="10" class="empty">표시할 학생이 없습니다.</td></tr>';
+    return;
+  }
+  body.innerHTML = filtered.map(student => `
+    <tr>
+      <td class="grade">${escapeHtml(student.grade)}</td>
+      <td>${escapeHtml(student.name)}</td>
+      <td class="code">${escapeHtml(student.code)}</td>
+      ${DAY_CODES.map(day => `<td class="day-cell ${expectedByDay[day]?.has(student.code) ? 'active' : ''}" onclick="toggleDay('${student.code}','${day}')"></td>`).join('')}
+    </tr>
+  `).join('');
+}
+
+function toggleDay(code, day) {
+  if (!expectedByDay[day]) expectedByDay[day] = new Set();
+  if (expectedByDay[day].has(code)) expectedByDay[day].delete(code);
+  else expectedByDay[day].add(code);
+  renderRows();
+  setStatus('변경됨 · 잠시 후 자동 저장됩니다.');
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveExpectedDays, 700);
+}
+
+async function saveExpectedDays() {
+  clearTimeout(saveTimer);
+  const btn = document.getElementById('saveBtn');
+  btn.classList.add('saving');
+  btn.textContent = '저장 중...';
+  try {
+    const byCode = new Map(students.map(student => [student.code, student]));
+    const days = {};
+    DAY_CODES.forEach(day => {
+      days[day] = [...(expectedByDay[day] || new Set())]
+        .map(code => byCode.get(code))
+        .filter(Boolean)
+        .map(student => ({ code: student.code, name: student.name, grade: student.grade }));
+    });
+    await db.collection('timetable').doc('expected_attendance').set({
+      days,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedBy: 'admin'
+    }, { merge: true });
+    setStatus('저장 완료 · 선생님 대시보드의 오늘의 학생에 반영됩니다.', 'success');
+  } catch (error) {
+    setStatus('저장 실패: ' + error.message, 'error');
+  } finally {
+    btn.classList.remove('saving');
+    btn.textContent = '저장';
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>
