@@ -180,8 +180,10 @@
     .expected-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-bottom: 0.75rem; }
     .expected-title { font-size: 0.98rem; font-weight: 900; color: #0f172a; }
     .expected-count { background: #fff200; color: #713f12; border-radius: 999px; padding: 0.18rem 0.55rem; font-size: 0.76rem; font-weight: 900; }
+    .expected-count.done { background: #dcfce7; color: #166534; }
     .expected-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 0.45rem; }
     .expected-chip { border: 1px solid #dbe6ef; border-radius: 10px; padding: 0.55rem 0.62rem; background: #f8fbfd; display: flex; align-items: center; justify-content: space-between; gap: 0.45rem; }
+    .expected-chip.done { background: #f0fdf4; border-color: #bbf7d0; }
     .expected-chip.extra { background: #fff7ed; border-color: #fed7aa; }
     .expected-chip-text { min-width: 0; display: grid; gap: 0.12rem; }
     .expected-chip strong { color: #0f172a; font-size: 0.9rem; }
@@ -572,12 +574,24 @@
     <div class="expected-panel">
       <div class="expected-panel-head">
         <div>
-          <div class="expected-title">오늘의 학생</div>
-          <div class="report-entry-sub" id="expectedTodaySub">오늘 등원이 예정된 학생을 확인합니다.</div>
+          <div class="expected-title">오늘 올 학생</div>
+          <div class="report-entry-sub" id="expectedTodaySub">학생 시간표 기준으로 아직 오지 않은 학생입니다.</div>
         </div>
         <div class="expected-count" id="expectedTodayCount">0명</div>
       </div>
       <div id="expectedTodayList" class="expected-grid">
+        <div class="expected-empty">불러오는 중...</div>
+      </div>
+    </div>
+    <div class="expected-panel">
+      <div class="expected-panel-head">
+        <div>
+          <div class="expected-title">오늘 온 학생</div>
+          <div class="report-entry-sub" id="visitedTodaySub">입실과 퇴실이 모두 완료된 학생입니다.</div>
+        </div>
+        <div class="expected-count done" id="visitedTodayCount">0명</div>
+      </div>
+      <div id="visitedTodayList" class="expected-grid">
         <div class="expected-empty">불러오는 중...</div>
       </div>
     </div>
@@ -1073,21 +1087,25 @@ function renderExpectedDashboard() {
   const listEl = document.getElementById('expectedTodayList');
   const countEl = document.getElementById('expectedTodayCount');
   const subEl = document.getElementById('expectedTodaySub');
-  if (!listEl || !countEl || !subEl) return;
+  const visitedListEl = document.getElementById('visitedTodayList');
+  const visitedCountEl = document.getElementById('visitedTodayCount');
+  const visitedSubEl = document.getElementById('visitedTodaySub');
+  if (!listEl || !countEl || !subEl || !visitedListEl || !visitedCountEl || !visitedSubEl) return;
   const expected = getExpectedTodayStudents();
-  const pending = expected.filter(s => !expectedDashboardAttendance[s.code]?.checkIn);
   const expectedCodes = new Set(expected.map(s => s.code));
-  const extra = Object.entries(expectedDashboardAttendance)
+  const pending = expected.filter(s => !expectedDashboardAttendance[s.code]?.checkIn);
+  const completed = Object.entries(expectedDashboardAttendance)
     .map(([code, att]) => ({
       code: String(att.code || code).padStart(4, '0'),
       name: att.studentName || att.name || code,
       grade: att.grade || '',
-      att
+      att,
+      expected: expectedCodes.has(String(att.code || code).padStart(4, '0'))
     }))
-    .filter(s => s.att?.checkIn && !expectedCodes.has(s.code))
+    .filter(s => s.att?.checkIn && s.att?.checkOut)
     .sort((a,b) => String(a.name || '').localeCompare(String(b.name || ''), 'ko'));
   countEl.textContent = `${pending.length}명`;
-  subEl.textContent = `${dateLabel} 등원 예정 · 출석하면 이 목록에서 자동으로 사라집니다.`;
+  subEl.textContent = `${dateLabel} 등원 예정 · 출석하면 오늘 올 학생에서 사라집니다.`;
   listEl.className = 'expected-grid';
   const pendingHtml = pending.map(s => `
     <div class="expected-chip">
@@ -1098,22 +1116,20 @@ function renderExpectedDashboard() {
       <button class="expected-delete" onclick="removeExpectedStudent('${escapeHtml(s.code)}')">삭제</button>
     </div>
   `).join('');
-  const extraHtml = extra.map(s => `
-    <div class="expected-chip extra">
+  listEl.innerHTML = pendingHtml || '<div class="expected-empty">오늘 올 학생이 없습니다.</div>';
+
+  visitedCountEl.textContent = `${completed.length}명`;
+  visitedSubEl.textContent = '퇴실까지 완료된 학생만 표시합니다. 시간표에 없는 학생은 예정외 학생으로 구분됩니다.';
+  visitedListEl.className = 'expected-grid';
+  const completedHtml = completed.map(s => `
+    <div class="expected-chip ${s.expected ? 'done' : 'extra'}">
       <div class="expected-chip-text">
         <strong>${escapeHtml(s.name)}</strong>
-        <span>예정 외 출석 · ${escapeHtml(s.code)}</span>
+        <span>${s.expected ? '퇴실 완료' : '예정외 학생'} · ${escapeHtml(s.code)} · ${escapeHtml(s.att.checkIn || '-')}→${escapeHtml(s.att.checkOut || '-')}</span>
       </div>
     </div>
   `).join('');
-  if (!pendingHtml && !extraHtml) {
-    listEl.className = '';
-    listEl.innerHTML = expected.length
-      ? '<div class="expected-empty">오늘 예정 학생이 모두 출석했습니다.</div>'
-      : '<div class="expected-empty">오늘 예정으로 체크된 학생이 없습니다.</div>';
-    return;
-  }
-  listEl.innerHTML = `${pendingHtml}${extraHtml}`;
+  visitedListEl.innerHTML = completedHtml || '<div class="expected-empty">아직 퇴실까지 완료된 학생이 없습니다.</div>';
 }
 
 async function removeExpectedStudent(code) {
