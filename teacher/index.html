@@ -176,6 +176,15 @@
     .report-entry-sub { font-size: 0.78rem; color: #64748b; margin-top: 0.18rem; line-height: 1.35; }
     .install-shortcut-btn { background: #1d4ed8; color: white; border: none; border-radius: 10px; padding: 0.72rem 1rem; font-size: 0.88rem; font-weight: 900; cursor: pointer; box-shadow: 0 6px 18px rgba(29,78,216,0.22); white-space: nowrap; }
     .install-shortcut-btn:active { transform: scale(0.99); }
+    .expected-panel { background: white; border: 1px solid #dbe6ef; border-radius: 14px; padding: 1rem; margin: 1rem 0; box-shadow: 0 2px 10px rgba(15,23,42,0.07); }
+    .expected-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-bottom: 0.75rem; }
+    .expected-title { font-size: 0.98rem; font-weight: 900; color: #0f172a; }
+    .expected-count { background: #fff200; color: #713f12; border-radius: 999px; padding: 0.18rem 0.55rem; font-size: 0.76rem; font-weight: 900; }
+    .expected-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 0.45rem; }
+    .expected-chip { border: 1px solid #dbe6ef; border-radius: 10px; padding: 0.55rem 0.62rem; background: #f8fbfd; display: flex; align-items: center; justify-content: space-between; gap: 0.45rem; }
+    .expected-chip strong { color: #0f172a; font-size: 0.9rem; }
+    .expected-chip span { color: #64748b; font-size: 0.72rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .expected-empty { color: #64748b; font-size: 0.84rem; line-height: 1.45; padding: 0.35rem 0; }
     #studentReportOverlay,
     #dailyReportOverlay {
       display: none; position: fixed; inset: 0; z-index: 210;
@@ -550,6 +559,20 @@
     <div class="no-data">불러오는 중...</div>
   </div>
   <div style="padding:0 1rem">
+    <div class="expected-panel">
+      <div class="expected-panel-head">
+        <div>
+          <div class="expected-title">오늘의 학생</div>
+          <div class="report-entry-sub" id="expectedTodaySub">오늘 등원이 예정된 학생을 확인합니다.</div>
+        </div>
+        <div class="expected-count" id="expectedTodayCount">0명</div>
+      </div>
+      <div id="expectedTodayList" class="expected-grid">
+        <div class="expected-empty">불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:0 1rem">
     <div class="report-entry install-entry">
       <div>
         <div class="report-entry-title">ThinkUp 아이콘 받기</div>
@@ -719,7 +742,9 @@ let currentTeacher = null;
 let allSchedule    = {};
 let attendanceData = {};
 let expectedAttendance = {};
+let expectedDashboardAttendance = {};
 let unsubscribe    = null;
+let expectedDashboardUnsubscribe = null;
 let dailyReportUnsubscribe = null;
 let noticeUnsubscribe = null;
 let currentNotice = null;
@@ -769,6 +794,7 @@ function doLogin() {
 
 function doLogout() {
   if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  if (expectedDashboardUnsubscribe) { expectedDashboardUnsubscribe(); expectedDashboardUnsubscribe = null; }
   if (dailyReportUnsubscribe) { dailyReportUnsubscribe(); dailyReportUnsubscribe = null; }
   if (noticeUnsubscribe) { noticeUnsubscribe(); noticeUnsubscribe = null; }
   sessionStorage.removeItem('thinkup_teacher_subject');
@@ -777,6 +803,7 @@ function doLogout() {
   allSchedule    = {};
   attendanceData = {};
   expectedAttendance = {};
+  expectedDashboardAttendance = {};
   document.getElementById('backBtn').style.display = 'none';
   document.getElementById('headerTitle').textContent = greetingTitle;
   document.getElementById('headerSub').textContent = greetingSub;
@@ -828,6 +855,7 @@ async function loadSchedulesAndShow() {
     return;
   }
   renderTeacherList();
+  startExpectedDashboardListener();
   startNoticeListener();
 }
 
@@ -948,6 +976,53 @@ function renderTeacherList() {
     btn.onclick = () => selectTeacher(name);
     list.appendChild(btn);
   });
+}
+
+function renderExpectedDashboard() {
+  const listEl = document.getElementById('expectedTodayList');
+  const countEl = document.getElementById('expectedTodayCount');
+  const subEl = document.getElementById('expectedTodaySub');
+  if (!listEl || !countEl || !subEl) return;
+  const expected = getExpectedTodayStudents();
+  const pending = expected.filter(s => !expectedDashboardAttendance[s.code]?.checkIn);
+  countEl.textContent = `${pending.length}명`;
+  subEl.textContent = `${dateLabel} 등원 예정 · 출석하면 이 목록에서 자동으로 사라집니다.`;
+  if (!expected.length) {
+    listEl.className = '';
+    listEl.innerHTML = '<div class="expected-empty">오늘 예정으로 체크된 학생이 없습니다.</div>';
+    return;
+  }
+  if (!pending.length) {
+    listEl.className = '';
+    listEl.innerHTML = '<div class="expected-empty">오늘 예정 학생이 모두 출석했습니다.</div>';
+    return;
+  }
+  listEl.className = 'expected-grid';
+  listEl.innerHTML = pending.map(s => `
+    <div class="expected-chip">
+      <strong>${escapeHtml(s.name)}</strong>
+      <span>${escapeHtml(s.grade || '')} · ${escapeHtml(s.code)}</span>
+    </div>
+  `).join('');
+}
+
+function startExpectedDashboardListener() {
+  if (expectedDashboardUnsubscribe) expectedDashboardUnsubscribe();
+  expectedDashboardAttendance = {};
+  renderExpectedDashboard();
+  expectedDashboardUnsubscribe = db.collection('attendance').doc(todayStr)
+    .collection('students')
+    .onSnapshot(snap => {
+      expectedDashboardAttendance = {};
+      snap.forEach(doc => { expectedDashboardAttendance[doc.id] = doc.data(); });
+      renderExpectedDashboard();
+    }, err => {
+      const listEl = document.getElementById('expectedTodayList');
+      if (listEl) {
+        listEl.className = '';
+        listEl.innerHTML = `<div class="expected-empty" style="color:#dc2626">오늘의 학생을 읽지 못했습니다: ${escapeHtml(err.message)}</div>`;
+      }
+    });
 }
 
 // ── 선생님 선택 ───────────────────────────────────────────────────────────────
