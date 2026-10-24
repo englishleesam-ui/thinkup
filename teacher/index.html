@@ -766,7 +766,7 @@ const DAY_KR     = {mon:'월',tue:'화',wed:'수',thu:'목',fri:'금',sat:'토'}
 const DAY_LABEL  = {mon:'월요일',tue:'화요일',wed:'수요일',thu:'목요일',fri:'금요일',sat:'토요일'};
 const JS_DAY_MAP = ['sun','mon','tue','wed','thu','fri','sat'];
 const ENGLISH_SUPERVISOR = '';
-const ENGLISH_AREAS = [{id:'grammar',name:'문법'},{id:'reading',name:'독해'},{id:'vocab',name:'단어'}];
+const ENGLISH_AREAS = [{id:'grammar',name:'문법',label:'5번방'},{id:'reading',name:'독해',label:'6번방'},{id:'vocab',name:'단어',label:'7번방'}];
 
 const now        = new Date();
 const todayCode  = JS_DAY_MAP[now.getDay()];
@@ -777,6 +777,7 @@ const greetingSub = `오늘은 ${now.getMonth()+1}월 ${now.getDate()}일, ${DAY
 
 // ── 상태 ─────────────────────────────────────────────────────────────────────
 let currentSubject = null;
+function englishRoomLabel(name) { return ENGLISH_AREAS.find(area => area.name === name)?.label || name; }
 let currentTeacher = null;
 let allSchedule    = {};
 let attendanceData = {};
@@ -1074,7 +1075,7 @@ function renderTeacherList() {
     btn.innerHTML = `
       <div class="t-avatar">👨‍🏫</div>
       <div>
-        <div class="t-name">${currentSubject.key === 'english' ? `${name} 방` : `${name} 선생님`}</div>
+        <div class="t-name">${currentSubject.key === 'english' ? englishRoomLabel(name) : `${name} 선생님`}</div>
         <div class="t-days">${currentSubject.key === 'english' ? `오늘의 학생 ${todayCount}명 · 실시간 수업 현황` : `${isEnglishSupervisorName(name) ? '오늘 영어 전체' : '오늘 담당'} ${todayCount}명`}</div>
       </div>
     `;
@@ -1177,7 +1178,7 @@ function selectTeacher(name, options = {}) {
   currentTeacher = name;
   const supervisorView = isSupervisorView();
   const areaView = isEnglishAreaView();
-  document.getElementById('headerTitle').textContent = areaView ? `${name} 방` : (supervisorView ? '영어 전체 수업 현황' : `${name} 선생님`);
+  document.getElementById('headerTitle').textContent = areaView ? englishRoomLabel(name) : (supervisorView ? '영어 전체 수업 현황' : `${name} 선생님`);
   document.getElementById('headerSub').textContent = supervisorView ? `${dateLabel} · 영어 전체 현황` : dateLabel;
   document.getElementById('backBtn').style.display = 'block';
   document.getElementById('refreshBtn').style.display = 'block';
@@ -1186,7 +1187,7 @@ function selectTeacher(name, options = {}) {
   document.getElementById('mainPage').style.display = 'block';
   document.getElementById('todayBar').textContent =
     areaView
-      ? `📅 ${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일) · ${name} 방 실시간 현황`
+      ? `📅 ${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일) · ${englishRoomLabel(name)} 실시간 현황`
       : supervisorView
       ? `📅 ${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일) · 오늘 영어 전체 수업`
       : `📅 ${now.getMonth()+1}월 ${now.getDate()}일 (${DAY_KR[todayCode] || ''}요일) · 오늘 수업`;
@@ -1513,10 +1514,10 @@ function renderEnglishAreaSections() {
     <div class="section-title">오늘의 학생 <span class="section-badge">${pending.length}</span></div>
     ${pendingHtml}
     <div class="section-divider"></div>
-    <div class="section-title">현재 ${area.name} 방 <span class="section-badge in">${current.length}</span></div>
+    <div class="section-title">현재 ${area.label} <span class="section-badge in">${current.length}</span></div>
     ${current.map(s => renderAreaCard(s, 'av-in')).join('') || '<div class="empty-msg">현재 이 방에서 공부 중인 학생이 없습니다</div>'}
     <div class="section-divider"></div>
-    <div class="section-title">${area.name} 완료 <span class="section-badge out">${done.length}</span></div>
+    <div class="section-title">${area.label} 완료 <span class="section-badge out">${done.length}</span></div>
     ${done.map(s => renderAreaCard(s, 'av-out')).join('') || '<div class="empty-msg">아직 이 수업을 완료한 학생이 없습니다</div>'}
   `;
 }
@@ -1593,7 +1594,7 @@ function showModal(code, name) {
         const mins = Number.isFinite(item.durationMinutes) ? item.durationMinutes : minutesSince(item.start);
         return `
           <div class="modal-row">
-            <span class="modal-label">${area.name}</span>
+            <span class="modal-label">${area.label}</span>
             <span class="modal-val">${item.start || '-'}${item.end ? ' → ' + item.end : ' → 수업 중'} · ${fmt(mins)}</span>
           </div>`;
       }).join('')
@@ -1821,7 +1822,7 @@ function renderDailyAreaChips(att, dateStr) {
   return `<div class="daily-area-list">${getDailyAreaRows(att, dateStr).map(row => {
     const text = row.status === 'done' ? '완료' : (row.status === 'active' ? '수강 중' : '미수강');
     return `<span class="daily-area-chip ${row.status}">
-      ${escapeHtml(row.area.name)} <small>${text}${row.minutes ? ` · ${fmt(row.minutes)}` : ''}</small>
+      ${escapeHtml(row.area.label)} <small>${text}${row.minutes ? ` · ${fmt(row.minutes)}` : ''}</small>
       <small>${escapeHtml(row.label)}</small>
     </span>`;
   }).join('')}</div>`;
